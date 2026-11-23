@@ -976,7 +976,7 @@ function beginschermStappen(){ // zoals HopHap: nummer, icoontje, korte zin
   const APP='<img src="icon-192.png" alt="">';
   const stap=(n,icoon,tekst)=>`<li class="gate-stap"><span class="gate-nr">${n}</span><span class="gate-ic">${icoon}</span><span>${tekst}</span></li>`;
   if(isAndroid()) return `<ol class="gate">${stap(1,PUNTEN,"Tik rechtsboven op <b>⋮</b>.")}${stap(2,PLUS,"Kies <b>App installeren</b> of <b>Toevoegen aan startscherm</b>.")}${stap(3,APP,"Open Ta-daa! vanaf je startscherm.")}</ol>`;
-  return `<ol class="gate">${stap(1,DEEL,"Tik op <b>Deel</b>. Niet te zien? Eerst op <b>···</b>.")}${stap(2,PLUS,"Kies <b>Zet op beginscherm</b>.")}${stap(3,APP,"Open Ta-daa! vanaf je beginscherm.")}</ol>`;
+  return `<ol class="gate">${stap(1,DEEL,"Tik op <b>Deel</b>. Zie je die knop niet? Tik dan eerst op <b>···</b>.")}${stap(2,PLUS,"Kies <b>Zet op beginscherm</b>.")}${stap(3,APP,"Open Ta-daa! vanaf je beginscherm.")}</ol>`;
 }
 function beginscherm(){
   app.innerHTML=`<div class="midden"><img class="app-icoon" src="icon-192.png" alt=""><h1 class="welkom-kop">Hoi, welkom bij Ta-daa!</h1>
