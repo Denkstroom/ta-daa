@@ -1,0 +1,31 @@
+{
+ "name": "Ta-daa",
+ "short_name": "Ta-daa",
+ "description": "Elke ochtend een outfit uit je eigen kast.",
+ "lang": "nl",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "background_color": "#0f5c63",
+ "theme_color": "#0f5c63",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "maskable"
+  }
+ ]
+}

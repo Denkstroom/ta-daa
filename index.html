@@ -1,0 +1,1039 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Ta-daa: elke ochtend een outfit uit je eigen kast. Zonder account, zonder AI, alles blijft op je telefoon.">
+<meta name="theme-color" content="#f7f4ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121416" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Ta-daa">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Ta-daa</title>
+<!--
+  KAST-APP (werktitel "Wat trek ik aan")
+  Bron van deze pagina: sjabloon.html. Bouwen met: python3 scripts/kast-app-bouw.py
+  Het bouwscript zet de kleding (kast-data.json) op de plek van [] en [] en schrijft kast.html.
+
+  Opbouw van het script hieronder:
+    1. Gegevens en vaste lijsten        6. Profiel "Dit ben ik"
+    2. Opslag (db + browser)            7. Schermen: Vandaag, Hoe voelde het, Laag voor laag
+    3. Labels per kledingstuk           8. Schermen: Outfits, Nieuwe combi
+    4. Regels (aan/uit) en eigen regels 9. Schermen: Kast, foto's toevoegen, labelen
+    5. Ideeën van de kast + score       10. Vellen, hulpjes, navigatie
+  Er wordt geen AI gebruikt: alle voorstellen komen uit de regels in deel 4 en 5.
+-->
+<style>
+/* Rustige app: gebroken wit, inkt, één petrol-accent. De kleur komt uit de kleding. */
+:root{
+  --bg:#f7f4ee; --vlak:#ffffff; --foto:#f1eee8; --inkt:#1f2d33; --mut:#6f7c80; --lijn:#e4dfd6;
+  --accent:#0f5c63; --accent-zacht:#dcebeb; --op-accent:#ffffff; --pop:#d9d4cb; --tafel:#e9e1d3; --polaroid:#fffdf8;
+  --tekst:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+/* Donker: neutraal grafiet met hetzelfde petrol-accent als licht, zodat de kleding de rest van de kleur geeft. */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121416; --vlak:#1c1f22; --foto:#e6e3de; --inkt:#ecebe8; --mut:#8f969b; --lijn:#2c3034;
+  --accent:#5fb3ba; --accent-zacht:#1d3538; --op-accent:#0e1a1c; --pop:#3a3f44; --tafel:#2a2e31; --polaroid:#f3efe6; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121416; --vlak:#1c1f22; --foto:#e6e3de; --inkt:#ecebe8; --mut:#8f969b; --lijn:#2c3034;
+  --accent:#5fb3ba; --accent-zacht:#1d3538; --op-accent:#0e1a1c; --pop:#3a3f44; --tafel:#2a2e31; --polaroid:#f3efe6; color-scheme:dark}
+
+/* basis */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--inkt);font:16px/1.45 var(--tekst);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+img{max-width:100%}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0;transition:transform .08s ease,opacity .08s ease}
+button:active{transform:scale(.97);opacity:.7}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:12px}
+@media (prefers-reduced-motion:reduce){button:active{transform:none}}
+#app{max-width:520px;margin:0 auto;padding-block:14px calc(92px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1{font-size:24px;line-height:1.2;margin:0 0 12px;font-weight:700;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:19px;margin:0 0 8px;font-weight:700}
+h3{font-size:15px;margin:0 0 8px;font-weight:700}
+.boven{font-size:14px;font-weight:600;color:var(--mut);margin-bottom:2px}
+.mut{color:var(--mut);font-size:14px;margin:0}
+.ico{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.kop{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.kop h1{margin:0}
+
+/* knoppen en keuzes */
+.primair{display:block;width:100%;background:var(--accent);color:var(--op-accent);font-weight:700;border-radius:16px;padding:14px;text-align:center}
+.primair:disabled{opacity:.45}
+.primair.gedaan{background:var(--accent-zacht);color:var(--inkt)}
+.secundair{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--vlak);border:1.5px solid var(--lijn);font-weight:700;border-radius:16px;padding:12px 16px}
+.link{color:var(--mut);text-decoration:underline;font-size:14px;padding:10px;display:block;margin:0 auto}
+.toevoeg{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:var(--op-accent);font-weight:700;font-size:14px;border-radius:99px;padding:9px 14px 9px 11px;flex:none}
+.toevoeg .ico{width:20px;height:20px}
+.weer-seg{margin:0 0 10px}
+.plusrond{width:44px;height:44px;border-radius:50%;background:var(--accent);color:var(--op-accent);display:grid;place-items:center;flex:none}
+.pillen{display:flex;flex-wrap:wrap;gap:6px}
+.pil{border:1.5px solid var(--lijn);background:var(--vlak);border-radius:99px;padding:7px 13px;font-size:14px;font-weight:700;min-height:38px}
+.pil[aria-pressed="true"]{background:var(--inkt);border-color:var(--inkt);color:var(--bg)}
+.filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px;scrollbar-width:none}
+.filters .pil{flex:none}
+.tel{color:var(--mut);font-size:12px;font-weight:600}
+.pil[aria-pressed="true"] .tel{color:inherit;opacity:.7}
+.seg{display:flex;background:var(--lijn);border-radius:14px;padding:3px;margin:0 0 12px}
+.seg button{flex:1;padding:9px 6px;border-radius:11px;font-size:14px;font-weight:600;color:var(--mut)}
+.seg button[aria-selected="true"]{background:var(--vlak);color:var(--inkt);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.seg b{background:var(--accent);color:var(--op-accent);border-radius:99px;padding:0 7px;font-size:12px;margin-left:4px}
+.toggles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.toggle{display:flex;justify-content:space-between;align-items:center;background:var(--vlak);border-radius:14px;padding:11px 12px;font-weight:600;font-size:14.5px;text-align:left;gap:10px;width:100%}
+.toggle i{width:34px;height:20px;border-radius:10px;background:var(--lijn);position:relative;flex:none;transition:background .15s}
+.toggle i::after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--vlak);transition:left .15s}
+.toggle[aria-pressed="true"] i{background:var(--accent)}
+.toggle[aria-pressed="true"] i::after{left:17px}
+
+/* Vandaag */
+.voorstel{background:var(--vlak);border-radius:24px;padding:10px;margin-bottom:12px;width:100%;text-align:left}
+.midden{text-align:center}
+.logo{font-size:40px;font-weight:800;letter-spacing:-.03em;color:var(--accent);margin:18px 0 6px}
+.stappen{list-style:none;counter-reset:stap;padding:0;margin:18px 0}
+.stappen li{counter-increment:stap;display:grid;grid-template-columns:34px 1fr;gap:4px 10px;background:var(--vlak);border-radius:16px;padding:12px;margin-bottom:8px}
+.stappen li::before{content:counter(stap);grid-row:span 2;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--op-accent);display:grid;place-items:center;font-weight:700}
+.stappen span{color:var(--mut);font-size:14px}
+.kort{margin:0;padding-left:20px;font-size:15px}.kort li{margin-bottom:8px}
+.primair.gevaar{background:#a33a2c;color:#fff}
+.wissels{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 14px}
+.wisselknop{background:var(--vlak);border:1.5px solid var(--lijn);border-radius:16px;padding:8px 10px;display:flex;flex-direction:column;align-items:center}
+.wisselknop small{font-size:11.5px;color:var(--mut);font-weight:600}
+.wisselknop b{font-size:17px}
+.tafel{position:relative;display:block;width:100%;height:min(48vh,410px);border-radius:24px;background:var(--tafel);margin-bottom:12px;overflow:hidden}
+.pol{position:absolute;width:44%;background:var(--polaroid);padding:6px 6px 22px;border-radius:3px;box-shadow:0 10px 18px -10px rgba(0,0,0,.55)}
+.pol img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--foto)}
+.pol i{position:absolute;left:8px;bottom:4px;font-style:normal;font-size:11px;font-weight:700;color:#59646a}
+.mini-pol{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;background:var(--tafel);border-radius:14px}
+.mini-pol span{background:var(--polaroid);padding:3px 3px 9px;border-radius:2px;box-shadow:0 4px 8px -5px rgba(0,0,0,.5)}
+.mini-pol img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.lagen-foto{display:grid;grid-template-columns:repeat(var(--n,2),1fr);gap:6px}
+.lagen-foto img{width:100%;aspect-ratio:3/4.1;object-fit:contain;background:var(--foto);border-radius:14px;display:block}
+.voorstel .onder{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 6px 2px;font-size:13.5px;color:var(--inkt);opacity:.75}
+.knoppen{display:grid;grid-template-columns:auto 1fr;gap:8px;margin-bottom:16px}
+.politie{background:var(--accent-zacht);border-radius:16px;padding:10px 14px;margin:-4px 0 12px;font-size:14.5px}
+.politie b{display:block;font-size:12px;color:var(--mut);font-weight:700}
+.kastcheck{display:grid;grid-template-columns:72px 1fr;gap:12px;background:var(--accent-zacht);border-radius:18px;padding:12px;margin-bottom:12px}
+.kastcheck img{width:72px;height:88px;object-fit:contain}
+.kastcheck p{margin:2px 0 0}
+.check-knoppen{grid-column:1/-1;display:grid;gap:6px}
+#check-weer{grid-column:1/-1}
+nav button{position:relative}
+nav button.stip::before{content:"";position:absolute;top:6px;right:calc(50% - 16px);width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.vandaag-keuze{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:12px}
+.weerknop{flex:none;font-size:13px;font-weight:700;color:var(--accent);border:1.5px solid var(--lijn);border-radius:99px;padding:7px 11px;background:var(--vlak)}
+.gevoel{display:grid;gap:8px;margin-top:14px}
+.gevoel button[aria-pressed="true"]{background:var(--accent);color:var(--op-accent);border-color:var(--accent)}
+.etiket{font-size:11.5px;font-weight:700;color:var(--accent);background:var(--accent-zacht);border-radius:99px;padding:1px 8px}
+
+/* Outfits */
+.outfit-raster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.kaart{background:var(--vlak);border-radius:18px;padding:6px;text-align:left;width:100%}
+.kaart .lagen-foto{gap:4px}.kaart .lagen-foto img{border-radius:11px}
+.kaart .lagen-foto img:nth-child(n+5){display:none}
+.kaart .onder{display:flex;justify-content:space-between;align-items:center;padding:6px 4px 2px;font-size:12px;color:var(--inkt);opacity:.75;min-height:24px}
+.leeg-staat{background:var(--vlak);border-radius:18px;padding:18px;color:var(--mut);text-align:center;grid-column:1/-1}
+
+/* Laag voor laag en Nieuwe combi */
+.terug{display:inline-flex;align-items:center;gap:2px;color:var(--accent);font-weight:700;margin-bottom:6px;padding:6px 0}
+.slots{display:grid;gap:8px;margin:10px 0 14px}
+.slot{display:flex;align-items:center;background:var(--vlak);border-radius:18px;width:100%}
+.slot-hoofd{flex:1;display:grid;grid-template-columns:60px 1fr auto;gap:12px;align-items:center;padding:7px 4px 7px 7px;text-align:left;min-width:0}
+.slot-weg{width:44px;height:44px;display:grid;place-items:center;color:var(--mut);margin-right:4px;border-radius:50%}
+.slot.leeg{display:grid;grid-template-columns:60px 1fr auto;gap:12px;padding:7px;text-align:left}
+.slot img{width:60px;height:72px;object-fit:cover;background:var(--foto);border-radius:2px;border:3px solid var(--polaroid);box-shadow:0 3px 6px -4px rgba(0,0,0,.4)}
+.slot .wat{font-size:11.5px;font-weight:700;color:var(--mut)}
+.slot b{display:block;font-size:15px;line-height:1.2}
+.slot small{color:var(--mut);font-size:12.5px}
+.slot.accent{box-shadow:inset 3px 0 0 var(--accent)}
+.slot.leeg{background:transparent;border:1.5px dashed var(--lijn)}
+.slot .plek{width:60px;height:60px;border-radius:12px;display:grid;place-items:center;color:var(--mut)}
+.wissel{color:var(--mut);padding:8px}
+.notitie,.historie{background:var(--vlak);border-radius:16px;padding:12px 14px;font-size:14.5px;margin-bottom:10px}
+.notitie p{margin:0}.notitie p+p{margin-top:4px}
+.historie{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px}
+.historie button{font-weight:700;color:var(--accent);text-decoration:underline;white-space:nowrap}
+.tip{background:var(--accent-zacht);border-radius:16px;padding:11px 14px;font-size:14.5px;margin-bottom:10px}
+.tip b{display:block;font-size:13px}
+.bevestig{background:var(--vlak);border-radius:16px;padding:12px;margin-top:8px}
+.bevestig p{margin:0 0 8px;font-weight:700}
+.bevestig div{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* Hoe voelde het */
+.voelde{background:var(--vlak);border-radius:24px;padding:16px;margin-bottom:16px}
+.schaal{margin:16px 0 4px}
+.schaal .ends{display:flex;justify-content:space-between;font-size:13px;font-weight:700}
+input[type=range]{width:100%;margin:8px 0 0;accent-color:var(--accent);height:28px}
+
+/* Kast en labelen */
+.raster{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stuk{background:var(--vlak);border-radius:16px;padding:5px;text-align:left}
+.stuk img{width:100%;aspect-ratio:4/5;object-fit:cover;background:var(--foto);border-radius:2px;display:block;border:5px solid var(--polaroid);border-bottom-width:5px;box-shadow:0 4px 8px -5px rgba(0,0,0,.45)}
+.stuk span{display:block;font-size:12px;line-height:1.2;margin:5px 2px 2px;min-height:2.4em}
+.stuk small{display:block;font-size:11px;color:var(--mut);margin:0 2px 2px;min-height:1.3em}
+.groot{width:100%;max-height:38vh;object-fit:contain;background:var(--foto);border-radius:18px;display:block;margin-bottom:12px}
+.voortgang{height:4px;background:var(--lijn);border-radius:4px;margin:4px 0 12px}
+.voortgang i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.groep{margin-bottom:16px}
+.swatches{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+.swatch{aspect-ratio:1;border-radius:50%;background:var(--k);border:1px solid rgba(0,0,0,.12);display:grid;place-items:center;min-height:36px}
+.swatch[aria-pressed="true"]{outline:3px solid var(--inkt);outline-offset:2px}
+.swatch b{background:var(--vlak);color:var(--inkt);border-radius:50%;width:18px;height:18px;font-size:11px;display:grid;place-items:center}
+.breek{flex-basis:100%;height:0}
+.vastonder{position:sticky;bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--bg);padding:10px 0 0;margin-top:8px}
+
+/* Dit ben ik */
+.blok{background:var(--vlak);border-radius:18px;padding:14px;margin-bottom:12px}
+.blok h2{font-size:16px;margin:0 0 4px}
+.blok .mut{margin-bottom:10px}
+.pop{position:relative;width:220px;height:330px;margin:4px auto 6px}
+.pop svg{width:220px;height:330px;display:block}
+.pop svg path,.pop svg circle{fill:var(--pop)}
+.zone{position:absolute;transform:translate(-50%,-50%);font-size:12.5px;font-weight:700;border-radius:99px;padding:5px 10px;white-space:nowrap;border:1.5px solid transparent}
+.zone[data-stand="ja"]{background:var(--accent);color:var(--op-accent)}
+.zone[data-stand="mm"]{background:var(--vlak);color:var(--inkt);border-color:var(--lijn)}
+.zone[data-stand="nee"]{background:var(--bg);color:var(--mut);border:1.5px dashed var(--mut)}
+.legenda{display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--mut);justify-content:center}
+.legenda span{display:inline-flex;align-items:center;gap:5px}
+.legenda i{width:12px;height:12px;border-radius:50%}
+.regel{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--lijn);font-size:14.5px;width:100%;text-align:left}
+.regel:last-child{border:0}
+.regel small{display:block;color:var(--mut);font-size:12.5px}
+.regel i{width:34px;height:20px;border-radius:10px;background:var(--lijn);position:relative;flex:none}
+.regel i::after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--vlak);transition:left .15s}
+.regel[aria-pressed="true"] i{background:var(--accent)}
+.regel[aria-pressed="true"] i::after{left:17px}
+.nooit{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin:8px 0}
+select{width:100%;font:inherit;font-size:14px;border:1.5px solid var(--lijn);border-radius:12px;padding:10px;background:var(--vlak);color:var(--inkt)}
+.eigen{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--lijn);font-size:14.5px}
+.eigen button{color:var(--mut);text-decoration:underline;font-size:13px}
+
+/* vel van onder, melding, onderbalk */
+.vel-achter{position:fixed;inset:0;background:rgba(10,20,24,.45);z-index:20}
+.vel{position:fixed;left:0;right:0;bottom:0;z-index:21;max-height:90vh;overflow:auto;background:var(--bg);border-radius:26px 26px 0 0;padding:8px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));max-width:560px;margin:0 auto}
+.greep{width:42px;height:5px;border-radius:9px;background:var(--lijn);margin:4px auto 10px}
+.vel-kop{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.sluit{width:40px;height:40px;border-radius:50%;background:var(--vlak);display:grid;place-items:center}
+.kies-rij{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px}
+.kies-rij button{flex:none;width:92px;text-align:left}
+.kies-rij img{width:92px;height:112px;object-fit:cover;background:var(--foto);border-radius:12px;display:block;border:2px solid transparent}
+.kies-rij button[aria-pressed="true"] img{border-color:var(--accent)}
+.kies-rij span{font-size:11.5px;display:block;line-height:1.2;margin-top:3px}
+.melding{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--inkt);color:var(--bg);padding:10px 16px;border-radius:14px;font-size:14px;z-index:30;max-width:90vw}
+.melding button{font-weight:700;text-decoration:underline;margin-left:8px}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--vlak);border-top:1px solid var(--lijn);padding:6px max(8px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-right,0px))}
+nav div{display:flex;max-width:520px;margin:0 auto}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px;font-size:11.5px;font-weight:700;color:var(--mut);border-radius:12px}
+nav button[aria-current="page"]{color:var(--inkt);background:var(--accent-zacht)}
+nav button[aria-current="page"] .ico{stroke-width:2.3}
+nav button[aria-current="page"]::after{content:"";display:block;width:18px;height:3px;border-radius:3px;background:var(--inkt);margin-top:2px}
+@media (prefers-reduced-motion:no-preference){.vel{animation:op .22s ease-out}@keyframes op{from{transform:translateY(30px);opacity:.7}}}
+</style>
+
+<div id="app"></div>
+<nav aria-label="Hoofdmenu"><div>
+  <button data-tab="vandaag"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>Vandaag</button>
+  <button data-tab="outfits"><svg class="ico" viewBox="0 0 24 24"><rect x="6" y="3" width="13" height="16" rx="2"/><path d="M4 7v12a2 2 0 0 0 2 2h10"/></svg>Outfits</button>
+  <button data-tab="kast"><svg class="ico" viewBox="0 0 24 24"><path d="M12 7a2 2 0 1 1 2-2c0 1-2 1.5-2 3v1"/><path d="M12 9 3 16a1.5 1.5 0 0 0 1 2.7h16A1.5 1.5 0 0 0 21 16z"/></svg>Kast</button>
+  <button data-tab="ik"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Dit ben ik</button>
+</div></nav>
+<div id="vel-plek"></div>
+<div class="melding" id="melding" role="status" hidden></div>
+
+<script>window.TADAA_SITE=true;</script>
+<script>
+"use strict";
+/* ================= 1. Gegevens en vaste lijsten ================= */
+const KAST=[];          // kleding uit kast-data.json (vul je aan via de app: zie deel 9)
+const OUTFITS=[];    // outfits die Irene samen met Claude heeft gemaakt
+const KAST_BASIS=[...KAST];
+const K=Object.fromEntries(KAST.map(k=>[k.id,k]));   // snel opzoeken op id
+
+const BEHOEFTES=[["comfy","Comfortabel"],["sexy","Sexy"],["stoer","Stoer"]];   // warm zit in het weer
+const LAAG={vest:"Bovenlaag",kimono:"Bovenlaag","jasje/blazer":"Bovenlaag",blouse:"Top","shirt/top":"Top",trui:"Top",jurk:"Basis",jumpsuit:"Basis",hemdje:"Accent",broek:"Onder",rok:"Onder",schoenen:"Schoenen"};
+const VOLGORDE=["Bovenlaag","Basis","Top","Accent","Onder","Schoenen"];
+const SOORTEN=[["vest","Vest"],["kimono","Kimono"],["blouse","Blouse"],["shirt/top","Shirt of top"],["trui","Trui"],["hemdje","Hemdje"],["broek","Broek"],["rok","Rok"],["jurk","Jurk"],["jumpsuit","Jumpsuit"],["schoenen","Schoenen"]];
+const SOORTNAAM=Object.fromEntries(SOORTEN.map(([k,t])=>[k,t.toLowerCase()]));
+const PALET=[["zwart","#1b1b1b"],["wit","#f5f5f2"],["grijs","#8a8f93"],["taupe","#8a7a70"],["bruin","#5a3e2e"],["ecru","#ece3cc"],["geel","#f0c230"],["limoen","#c9d82a"],["oranje","#e57a32"],["rood","#c62a2f"],["bordeaux","#6e1a2a"],["lichtroze","#f2c4cf"],["roze","#ef7f9a"],["fuchsia","#d1197a"],["lila","#b59ad8"],["paars","#5b2bb0"],["aubergine","#4a1f3d"],["lichtblauw","#a9c6e4"],["blauw","#2f6fd6"],["kobalt","#1f45c9"],["donkerblauw","#1f2a4a"],["denim","#5b7aa0"],["turquoise","#1fb3b0"],["petrol","#0f5c63"],["smaragd","#0e8a63"],["zeegroen","#4f9a86"],["salie","#a3b49d"],["olijf","#6b6a2e"],["donkergroen","#2f4a3a"]];
+const FEL=new Set(["fuchsia","kobalt","blauw","turquoise","smaragd","rood","roze","paars","lila","limoen","geel","oranje","zeegroen","bordeaux"]);
+const STRAK_FEL=new Set(["fuchsia","kobalt","turquoise","smaragd","limoen","rood","oranje","paars","geel"]);
+const ZACHT=new Set(["salie","zeegroen","lichtblauw","lila","ecru","lichtroze"]);
+const BLAUW=new Set(["kobalt","blauw","donkerblauw","lichtblauw"]);
+const FAMILIE={rood:"rood",bordeaux:"rood",oranje:"rood",roest:"rood",fuchsia:"roze",roze:"roze",lichtroze:"roze",paars:"paars",lila:"paars",aubergine:"paars",
+  kobalt:"blauw",blauw:"blauw",donkerblauw:"blauw",lichtblauw:"blauw",turquoise:"turquoise",
+  smaragd:"groen",zeegroen:"groen",salie:"groen",olijf:"groen",donkergroen:"groen",petrol:"groen",limoen:"geel",geel:"geel",ecru:"geel",
+  denim:"denim",zwart:"zwart"}; // wit, grijs, blauwgrijs, taupe en bruin tellen niet als kleur
+const KLEURTYPES={winter:["Winter","koel, helder, veel contrast",["ecru","olijf","roest","oranje","taupe"]],zomer:["Zomer","koel en zacht",["zwart","oranje","limoen"]],
+  lente:["Lente","warm en helder",["zwart","aubergine","bordeaux"]],herfst:["Herfst","warm en gedempt",["fuchsia","kobalt","lichtblauw"]],onbekend:["Weet ik niet","de kast kijkt alleen naar je regels",[]]};
+const WEER=[["koud","Koud"],["fris","Fris"],["warm","Warm"]];
+const DRAGEN=[["los","Los"],["onder","Onder iets"],["over","Over iets"],["knopen","Knopen"],["instoppen","Instoppen"]];
+const ICO_EXTRA={camera:'<svg class="ico" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',lagen:'<svg class="ico" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>'};
+const ICO={wissel:'<svg class="ico" viewBox="0 0 24 24"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>',plus:'<svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',x:'<svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>',terug:'<svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>'};
+
+/* ================= 2. Opslag ================= */
+/* Alles wat je in de app doet, staat in één document (kast/staat) in de db van deze pagina.
+   Zo is het hetzelfde op telefoon en laptop, en kan Claude het teruglezen. De browser is reserve. */
+const IRENE_NOOIT=[ // Irenes eigen voorkeuren (waren eerst algemene regels)
+  {a:"k:kobalt",b:["k:blauw","k:donkerblauw","k:lichtblauw"]},{a:"k:blauw",b:["k:donkerblauw","k:lichtblauw"]},{a:"k:donkerblauw",b:["k:lichtblauw"]},
+  {a:"k:fuchsia",b:["k:rood","k:roze","k:blauw","k:lichtblauw","k:donkerblauw"]},{a:"k:kobalt",b:["k:rood","k:bordeaux"]},
+  {a:"s:4548",b:["k:salie","k:zeegroen","k:lichtblauw","k:lila","k:ecru"]},
+  {a:"s:4586",b:["s:4583","s:4584","s:4530","s:4546","s:4519","s:4520"]},{a:"s:4603",b:["s:4583","s:4584","s:4530","s:4546","s:4519","s:4520"]},{a:"s:4606",b:["s:4583","s:4584","s:4530","s:4546","s:4519","s:4520"]}];
+/* Ta-daa bestaat in twee vormen:
+   - SITE (de website voor iedereen): alles blijft op de telefoon, in de browser (localStorage + IndexedDB voor foto's).
+   - Irenes eigen versie op claude.ai: bewaart in de db van die pagina, met haar kleding erin. */
+const SITE=!!window.TADAA_SITE;
+const PROFIEL_START=SITE
+  ?{afdeling:"allebei",kleurtype:"onbekend",zones:{},comfort:{geenHakken:false},regelsUit:["fel"],nooit:[],genegeerd:[]}
+  :{afdeling:"dames",kleurtype:"winter",zones:{schouders:"ja",armen:"nee"},comfort:{geenHakken:true},regelsUit:[],nooit:[],genegeerd:[]};
+const LEEG={labels:{},extra:[],weg:[],status:{},gedragen:[],wegStuk:[],wegIdee:[],nieuw:[],profiel:PROFIEL_START};
+const kopie=x=>JSON.parse(JSON.stringify(x));
+let S=kopie(LEEG);
+const LS=SITE?"tadaa-staat":"kast-app-v2";
+try{const l=JSON.parse(localStorage.getItem(LS)||"null"); if(l) S={...S,...l};}catch(e){}
+let dbDoc=null, schrijfTimer=null;
+function bewaar(){
+  try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){}
+  if(!dbDoc) return;
+  clearTimeout(schrijfTimer);
+  schrijfTimer=setTimeout(()=>{dbDoc.set(kopie(S)).catch(()=>{});},500);
+}
+/* ---------- foto's: op de telefoon (IndexedDB) of in de opslag van claude.ai ---------- */
+const FOTO_URL={};   // "idb:sleutel" → tijdelijke adres van de foto op dit apparaat
+function fotoDb(){return new Promise((ok,nee)=>{const r=indexedDB.open("tadaa-fotos",1);r.onupgradeneeded=()=>r.result.createObjectStore("fotos");r.onsuccess=()=>ok(r.result);r.onerror=()=>nee(r.error);});}
+async function idb(modus,fn){const db=await fotoDb();return new Promise((ok,nee)=>{const t=db.transaction("fotos",modus);const r=fn(t.objectStore("fotos"));t.oncomplete=()=>ok(r?.result);t.onerror=()=>nee(t.error);});}
+async function laadFotos(){ if(!SITE) return; try{
+  const sleutels=await idb("readonly",s=>s.getAllKeys());
+  for(const k of sleutels){const b=await idb("readonly",s=>s.get(k)); if(b) FOTO_URL["idb:"+k]=URL.createObjectURL(b);}
+}catch(e){} }
+async function bewaarFoto(blob,type){
+  if(SITE){const k=Date.now().toString(36)+Math.random().toString(36).slice(2,6);await idb("readwrite",s=>s.put(blob,k));FOTO_URL["idb:"+k]=URL.createObjectURL(blob);return "idb:"+k;}
+  const assets=await window.claude?.use?.("assets"); if(!assets) throw new Error("geen opslag");
+  return (await assets.upload(blob,{type})).id;
+}
+const fotoSrc=a=>!a?"":a.startsWith("idb:")?(FOTO_URL[a]||""):"/_blob/"+a;
+async function opstarten(){ // eerst de foto's van de telefoon laden, dan pas tekenen
+  await laadFotos(); syncNieuw(); toon();
+  if(SITE) navigator.storage?.persist?.().catch(()=>{});   // vraag de browser de gegevens niet zomaar op te ruimen
+}
+(async()=>{
+  if(SITE) return;
+  try{
+    const db=await window.claude?.use?.("db"); if(!db) return;
+    dbDoc=db.doc("kast/staat");
+    const snap=await dbDoc.get();
+    // Let op: data uit de opslag is 'bevroren'. Daarom eerst kopiëren, anders werken knoppen niet meer.
+    if(snap.exists){ S={...kopie(LEEG),...kopie(snap.data())}; if(S.profiel&&!S.profiel.overgezet){S.profiel.nooit=[...IRENE_NOOIT,...(S.profiel.nooit||[])];S.profiel.overgezet=true;} try{localStorage.setItem(LS,JSON.stringify(S));}catch(e){} syncNieuw(); toon(false); }
+    else bewaar();
+  }catch(e){ dbDoc=null; }
+})();
+const P=()=>({...PROFIEL_START,genegeerd:[],...S.profiel,comfort:{...PROFIEL_START.comfort,...(S.profiel?.comfort||{})},zones:{...(S.profiel?.zones||{})}});
+const heren=()=>P().afdeling==="heren";
+
+/* ================= 3. Labels per kledingstuk ================= */
+function labels(id){
+  const it=K[id], l=S.labels[id]||{};
+  const dragen=l.dragen??it.dragen??(it.soort==="hemdje"?["onder"]:[]);
+  return {tags:l.tags??it.tags??[], hak:l.hak??!!it.hak, dragen, accent:l.accent??(it.soort==="hemdje"||dragen.includes("onder")), zichtbaar:l.zichtbaar??it.zichtbaar??[], weer:l.weer??it.weer??["koud","fris","warm"]};
+}
+const tags=id=>labels(id).tags;
+const kleur=id=>K[id]?.kleuren?.[0];
+const isPatroon=id=>!!K[id]?.patroon;
+const metPanty=id=>["rok","jurk"].includes(K[id]?.soort);
+const actief=id=>K[id]&&!S.wegStuk.includes(id);
+const kastNu=()=>KAST.filter(k=>actief(k.id)&&past(k));
+function past(k){ // wat hoort bij je afdeling (herenkleding: geen rokken, jurken of hakken)
+  if(!heren()) return true;
+  return !["rok","jurk"].includes(k.soort)&&!(k.soort==="schoenen"&&labels(k.id).hak);
+}
+function zones(){ // de plekken op het poppetje, met woorden die bij je afdeling passen
+  return [["schouders","Schouders"],["armen","Armen"],["decollete",heren()?"Borst":"Decolleté"],["rug","Rug"],["taille","Taille"],["heupen","Heupen"],["benen","Benen"]];
+}
+
+/* ================= 4. Regels ================= */
+/* Elke regel kun je aan of uit zetten bij "Dit ben ik". 'verbod' houdt een combi tegen,
+   'voorkeur' zet hem alleen hoger of lager. ctx = {ids, its, kl (hoofdkleuren), fam (kleurfamilies)}. */
+const REGELS=[ // algemene regels: voor iedereen
+  {id:"max3",groep:"Kleur",tekst:"Maximaal 3 kleuren",verbod:c=>new Set(c.fam).size>3},
+  {id:"eentonig",groep:"Kleur",tekst:"Niet alles uit één kleurfamilie",verbod:c=>new Set(c.fam).size===1&&c.fam.length>=2},
+  {id:"fel",groep:"Kleur",tekst:"Minstens één felle kleur",verbod:c=>![...c.kl].some(k=>FEL.has(k))},
+  {id:"patroon",groep:"Combineren",tekst:"Niet twee patronen",verbod:c=>c.ids.filter(isPatroon).length>1},
+  {id:"vesttrui",groep:"Combineren",tekst:"Geen vest over een trui",verbod:c=>c.its.some(i=>i.soort==="trui")&&c.its.some(i=>["vest","kimono"].includes(i.soort))},
+  {id:"wijd",groep:"Combineren",tekst:"Niet wijd met wijd",verbod:c=>c.its.some(i=>["vest","kimono"].includes(i.soort)&&i.pasvorm==="wijd")&&c.its.some(i=>["broek","rok"].includes(i.soort)&&i.pasvorm==="wijd")},
+  {id:"weer",groep:"Combineren",tekst:"Past bij het weer van vandaag",verbod:c=>!c.its.every(pastWeer)},
+  {id:"blikvanger",groep:"Voorkeur",tekst:"Eén blikvanger per outfit",voorkeur:c=>c.its.some(i=>i.patroon)&&c.its.some(i=>!i.patroon&&!["hemdje","schoenen"].includes(i.soort)&&STRAK_FEL.has(i.kleuren?.[0]))?-1:0},
+  {id:"herhaal",groep:"Voorkeur",tekst:"Een kleur die terugkomt",voorkeur:c=>{const a=c.its.flatMap(i=>i.kleuren||[]);return a.some((k,i)=>k!=="zwart"&&a.indexOf(k)!==i)?1:0;}},
+];
+const TYPEREGELS={ // komen er vanzelf bij als je je kleurtype kiest
+  winter:[
+    {id:"felzacht",groep:"Kleurtype",tekst:"Fel niet naast zacht",verbod:c=>[...c.kl].some(k=>STRAK_FEL.has(k))&&[...c.kl].some(k=>ZACHT.has(k))},
+    {id:"gezicht",groep:"Kleurtype",tekst:"De felste kleur bij je gezicht",voorkeur:c=>{const f=i=>FEL.has(i.kleuren?.[0]);const b=c.its.filter(i=>["Top","Bovenlaag","Basis"].includes(LAAG[i.soort])),o=c.its.filter(i=>LAAG[i.soort]==="Onder");return (b.some(f)?.5:0)-(o.some(f)&&!b.some(f)?1:0);}},
+  ],
+  zomer:[{id:"zachtcontrast",groep:"Kleurtype",tekst:"Zachte kleuren, weinig contrast",voorkeur:c=>[...c.kl].filter(k=>STRAK_FEL.has(k)).length>1?-1:0}],
+  lente:[{id:"helderwarm",groep:"Kleurtype",tekst:"Heldere, warme kleuren",voorkeur:c=>c.kl.has("zwart")?-.5:0}],
+  herfst:[{id:"gedempt",groep:"Kleurtype",tekst:"Gedempte, warme kleuren",voorkeur:c=>[...c.kl].filter(k=>STRAK_FEL.has(k)).length>1?-1:0}],
+  onbekend:[],
+};
+const alleRegels=()=>[...REGELS,...(TYPEREGELS[P().kleurtype]||[])];
+const regelAan=id=>!P().regelsUit.includes(id);
+function context(ids){
+  const its=ids.map(id=>K[id]), kleding=its.filter(i=>i.soort!=="schoenen");
+  return {ids,its,kl:new Set(kleding.map(i=>i.kleuren?.[0]).filter(Boolean)),fam:kleding.map(i=>FAMILIE[i.kleuren?.[0]]).filter(Boolean)};
+}
+function nooitSamen(ids){ // eigen regels: "nooit A met B" (A is een kleur of kledingstuk, B één of meer)
+  const heeft=w=>w.startsWith("k:")?ids.some(id=>(K[id].kleuren||[]).slice(0,1).includes(w.slice(2))):ids.includes(w.slice(2));
+  return P().nooit.some(r=>heeft(r.a)&&[].concat(r.b).some(heeft));
+}
+function regelsOk(ids){
+  const c=context(ids);
+  if(alleRegels().some(r=>r.verbod&&regelAan(r.id)&&r.verbod(c))) return false;
+  return !nooitSamen(ids);
+}
+function voorkeur(ids){
+  const c=context(ids); let s=0;
+  for(const r of alleRegels()) if(r.voorkeur&&regelAan(r.id)) s+=r.voorkeur(c);
+  const minder=KLEURTYPES[P().kleurtype]?.[2]||[];          // kleurtype: deze kleuren staan je minder
+  s-=0.4*c.its.filter(i=>minder.includes(i.kleuren?.[0])).length;
+  s+=zichtScore(ids);
+  return s;
+}
+function zichtScore(ids){ // wat laat deze outfit zien, en hoe voel jij je daarbij?
+  const its=ids.map(id=>K[id]); const bedekt=new Set();
+  if(its.some(i=>LAAG[i.soort]==="Bovenlaag")) ["schouders","armen","rug"].forEach(z=>bedekt.add(z));
+  const zicht=new Set(its.filter(i=>i.soort!=="hemdje").flatMap(i=>labels(i.id).zichtbaar).filter(z=>!bedekt.has(z)));
+  let s=0; const z=P().zones;
+  zicht.forEach(x=>{ if(z[x]==="ja") s+=.4; if(z[x]==="nee") s-=1.2; });
+  return Math.max(-3,Math.min(1,s));
+}
+
+function suggesties(){ // kleurparen die je minstens 3 keer weghaalde en nooit bewaarde
+  const paren=ids=>{const k=[...new Set(ids.filter(id=>K[id]&&K[id].soort!=="schoenen").map(kleur).filter(c=>c&&FAMILIE[c]))].sort();const p=[];k.forEach((a,i)=>k.slice(i+1).forEach(b=>p.push(a+"+"+b)));return p;};
+  const weg={}; S.wegIdee.forEach(s=>paren(s.split("+")).forEach(p=>weg[p]=(weg[p]||0)+1));
+  const bewaard=new Set(OUTFITS.concat(S.extra).flatMap(o=>paren(o.stukken)));
+  const al=new Set(P().nooit.flatMap(r=>[].concat(r.b).map(b=>[r.a,b].map(x=>x.slice(2)).sort().join("+"))));
+  return Object.entries(weg).filter(([p,n])=>n>=3&&!bewaard.has(p)&&!al.has(p)&&!P().genegeerd.includes(p)).sort((a,b)=>b[1]-a[1]).map(([p,n])=>({paar:p.split("+"),n}));
+}
+
+/* ================= 5. Ideeën van de kast + score ================= */
+function schoenVoor(ids){
+  const schoenen=kastNu().filter(k=>k.soort==="schoenen"), its=ids.map(id=>K[id]);
+  const kies=f=>schoenen.find(f)?.id||null;
+  if(its.some(i=>labels(i.id).hak)) return kies(s=>labels(s.id).hak&&pastWeer(s));
+  if(its.some(i=>metPanty(i.id))) return kies(s=>!labels(s.id).hak&&pastWeer(s)&&tags(s.id).includes("stoer"))||kies(s=>!labels(s.id).hak&&pastWeer(s));
+  return kies(s=>!labels(s.id).hak&&pastWeer(s)&&tags(s.id).includes("comfy")&&!tags(s.id).includes("stoer"))||kies(s=>!labels(s.id).hak&&pastWeer(s));
+}
+let _ideeCache=null,_ideeSleutel="";
+function ideeen(vast){
+  const sleutel=JSON.stringify([S.wegStuk,S.wegIdee,S.labels,S.profiel,vast.length,KAST.length,weerNu()]);
+  if(_ideeCache&&_ideeSleutel===sleutel) return _ideeCache;
+  const al=new Set(vast.map(o=>kledingIn(o).sort().join("+")));
+  const kast=kastNu().filter(k=>!k.nietInIdeeen), soort=s=>kast.filter(k=>s.includes(k.soort));
+  const tops=soort(["blouse","shirt/top","trui"]), onders=soort(["broek","rok"]), vesten=soort(["vest","kimono"]), hemdjes=soort(["hemdje"]), basis=soort(["jurk","jumpsuit"]);
+  const kandidaten=[];
+  const probeer=(ids,bonus)=>{
+    if(!regelsOk(ids)) return;
+    const k=[...ids].sort().join("+"); if(al.has(k)||S.wegIdee.includes(k)) return; al.add(k);
+    const fel=new Set(ids.map(kleur).filter(c=>FEL.has(c))).size;
+    const sch=schoenVoor(ids);
+    if(P().comfort.geenHakken&&sch&&labels(sch).hak) bonus-=1;
+    kandidaten.push({nr:"i"+k,sleutel:k,stukken:sch?[...ids,sch]:ids,status:"idee",idee:true,
+      schoenen:ids.some(metPanty)?"Met panty":"",s:fel+bonus+voorkeur(ids)+dagzaad(k)*0.8});
+  };
+  for(const t of tops) for(const o of onders){
+    const wilAccent=t.soort==="blouse"||t.scheveHals||labels(t.id).dragen.includes("over");
+    const accenten=wilAccent?hemdjes.filter(h=>kleur(h.id)!==kleur(t.id)).sort((a,b)=>FEL.has(kleur(b.id))-FEL.has(kleur(a.id))).slice(0,3):[null];
+    for(const h of accenten){
+      const ids=h?[t.id,o.id,h.id]:[t.id,o.id];
+      probeer(ids,h?0.4:0);
+      if(!t.geenVestErover) for(const v of vesten) probeer([...ids,v.id],0.6);
+    }
+  }
+  for(const b of basis) for(const v of vesten) probeer([b.id,v.id],0.5);
+  // variatie: elk stuk komt maar een paar keer voor, lastige stukken één keer
+  const telling={}, uit=[], vrij=(k,max)=>(telling[k]||0)<max;
+  for(const c of kandidaten.sort((a,b)=>b.s-a.s)){
+    const ids=kledingIn(c), hoofd=ids[0];
+    const onder=ids.find(id=>["broek","rok"].includes(K[id].soort))||"-", vest=ids.find(id=>LAAG[K[id].soort]==="Bovenlaag")||"-", acc=ids.find(id=>K[id].soort==="hemdje")||"-";
+    const sleutels=[hoofd,"o"+onder,"v"+vest,"a"+acc,...ids.filter(id=>K[id].lastig).map(id=>"l"+id)];
+    const max=k=>k.startsWith("l")?1:k==="v-"||k==="a-"?99:k.startsWith("o")||k.startsWith("v")||k.startsWith("a")?4:2;
+    if(!sleutels.every(k=>vrij(k,max(k)))) continue;
+    sleutels.forEach(k=>telling[k]=(telling[k]||0)+1);
+    uit.push(c); if(uit.length>=24) break;
+  }
+  _ideeCache=uit; _ideeSleutel=sleutel; return uit;
+}
+const kledingIn=o=>o.stukken.filter(id=>K[id]?.soort!=="schoenen");
+function alle(){ // alle outfits: vaste + eigen combi's + ideeën van de kast
+  const eigen=OUTFITS.map(o=>({...o,nr:String(o.nr),status:S.status[o.nr]||o.status})).concat(S.extra.map(o=>({...o,nr:String(o.nr)})));
+  const heeftBasis=o=>o.stukken.some(id=>["broek","rok","jurk","jumpsuit"].includes(K[id]?.soort));
+  const vast=eigen.filter(o=>!S.weg.map(String).includes(o.nr)).map(o=>({...o,stukken:o.stukken.filter(id=>actief(id)&&past(K[id]))})).filter(o=>kledingIn(o).length>=2&&heeftBasis(o));
+  return vast.concat(ideeen(vast));
+}
+const vind=nr=>alle().find(o=>o.nr===String(nr));
+function weerNu(){ // je eigen keuze voor vandaag, anders een gok op basis van de maand
+  if(S.weerVandaag?.datum===vandaagDatum()) return S.weerVandaag.weer;
+  const m=new Date().getMonth(); return [10,11,0,1].includes(m)?"koud":[4,5,6,7,8].includes(m)?"warm":"fris";
+}
+const pastWeer=i=>!i||labels(i.id).weer.includes(weerNu());
+const inSeizoen=o=>!regelAan("weer")||o.stukken.every(id=>pastWeer(K[id]));
+let behoefte={};
+function score(o){ // hoe goed past een outfit bij vandaag?
+  let s=0;
+  for(const [n] of BEHOEFTES){ if(!behoefte[n]) continue;
+    let c=o.stukken.filter(id=>tags(id).includes(n)).length;
+    s+=c>0?Math.min(c,2):-0.7;
+  }
+  const g=S.gedragen.filter(x=>String(x.nr)===o.nr&&x.klaar).slice(-1)[0];
+  if(g){ s+=(g.mij-50)/25;
+    if(behoefte.comfy&&g.zit<35) s-=1.5;   // knelde
+    if(g.warm<35&&weerNu()!=="warm") s-=1;   // was te koud
+    if(g.warm>75&&weerNu()!=="koud") s-=.5;  // was te warm
+    if(g.pas==="wijd") s-=.7;                // zat te wijd
+  }
+  if(favoriet(o)) s+=.6;
+  if(o.idee) s-=.6; else s+=zichtScore(kledingIn(o));
+  const dagen=d=>(new Date(vandaagDatum())-new Date(d))/864e5;
+  const gedragen=S.gedragen.filter(x=>String(x.nr)===o.nr).map(x=>dagen(x.datum)).filter(d=>d<7);
+  if(gedragen.length) s-=1.5;                                   // net gedragen: even niet
+  const overgeslagen=(GEZIEN[o.nr]||[]).filter(d=>dagen(d)<3).length;
+  s-=Math.min(2,overgeslagen*.7);                               // net overgeslagen: even niet
+  return s;
+}
+function dagzaad(x){const n=[...String(x)].reduce((a,c)=>a+c.charCodeAt(0),0);const d=new Date();const v=(d.getFullYear()*372+d.getMonth()*31+d.getDate())*97+n*131;return ((v*9301+49297)%233280)/233280;}
+const ranglijst=()=>alle().filter(inSeizoen).map(o=>({o,s:score(o)+dagzaad(o.nr)*1.2})).sort((a,b)=>b.s-a.s).map(x=>x.o);
+// welke outfits je net hebt overgeslagen (alleen op dit apparaat, zodat de lijst elke dag wisselt)
+let GEZIEN={}; try{GEZIEN=JSON.parse(localStorage.getItem("kast-gezien")||"{}");}catch(e){}
+function overgeslagen(nr){(GEZIEN[nr]??=[]).push(vandaagDatum());GEZIEN[nr]=GEZIEN[nr].slice(-5);try{localStorage.setItem("kast-gezien",JSON.stringify(GEZIEN));}catch(e){}}
+function favoriet(o){const g=S.gedragen.filter(x=>String(x.nr)===o.nr&&x.klaar).slice(-1)[0];return !!g&&g.mij>=70;}
+
+/* ================= 6. Dit ben ik ================= */
+const POP='<svg viewBox="0 0 220 330" aria-hidden="true"><circle cx="110" cy="34" r="22"/><path d="M74 66 Q110 56 146 66 L164 78 L182 168 L168 171 L150 104 L146 168 Q158 200 155 222 L146 322 L122 322 L113 230 L107 230 L98 322 L74 322 L65 222 Q62 200 74 168 L70 104 L52 171 L38 168 L56 78 Z"/></svg>';
+const ZONEPLEK={schouders:[150,70],armen:[36,128],decollete:[110,96],rug:[188,110],taille:[110,160],heupen:[44,206],benen:[110,268]};
+const STANDEN=["ja","mm","nee"];
+function ik(){
+  const p=P(), mag=(z)=>p.zones[z]||"mm";
+  const kt=KLEURTYPES[p.kleurtype]||KLEURTYPES.onbekend;
+  const opties=[...PALET.map(([n])=>["k:"+n,n]),...kastNu().filter(k=>k.soort!=="schoenen").map(k=>["s:"+k.id,k.naam])];
+  const naam=w=>w.startsWith("k:")?w.slice(2):(K[w.slice(2)]?.naam||"?");
+  app.innerHTML=`<h1>Dit ben ik</h1>
+  <div class="blok"><h2>Welke kleding draag je?</h2><p class="mut">Hiermee kiest de app welke soorten kleding en welke woorden hij gebruikt.</p>
+    <div class="pillen">${[["dames","Dameskleding"],["heren","Herenkleding"],["allebei","Allebei"]].map(([k,t])=>`<button class="pil" data-afd="${k}" aria-pressed="${p.afdeling===k}">${t}</button>`).join("")}</div></div>
+  <div class="blok"><h2>Wat laat je graag zien?</h2><p class="mut">Er is geen goed of fout. Het gaat erom waar jij je fijn in voelt. Tik een plek om te wisselen.</p>
+    <div class="pop">${POP}${zones().map(([z,t])=>`<button class="zone" data-zone="${z}" data-stand="${mag(z)}" style="left:${ZONEPLEK[z][0]}px;top:${ZONEPLEK[z][1]}px" aria-label="${t}: ${({ja:"laat ik graag zien",mm:"maakt niet uit",nee:"liever bedekt"})[mag(z)]}">${t}</button>`).join("")}</div>
+    <div class="legenda"><span><i style="background:var(--accent)"></i>laat ik graag zien</span><span><i style="background:var(--vlak);border:1.5px solid var(--lijn)"></i>maakt niet uit</span><span><i style="border:1.5px dashed var(--mut)"></i>liever bedekt</span></div></div>
+  <div class="blok"><h2>Kleurtype</h2><p class="mut">${kt[0]}: ${kt[1]}.${kt[2].length?` Minder vaak: ${kt[2].join(", ")}.`:""}</p>
+    <div class="pillen">${Object.entries(KLEURTYPES).map(([k,v])=>`<button class="pil" data-kt="${k}" aria-pressed="${p.kleurtype===k}">${v[0]}</button>`).join("")}</div></div>
+  ${suggesties().slice(0,1).map(x=>`<div class="blok" style="border:1.5px solid var(--accent)"><h2>De kast merkte iets op</h2><p class="mut">Je haalde ${x.n} keer ${x.paar[0]} met ${x.paar[1]} weg. Wil je die nooit meer samen zien?</p>
+    <div class="knoppen" style="margin:0"><button class="secundair" data-sug-nee="${x.paar.join("+")}">Nee</button><button class="primair" data-sug-ja="${x.paar.join("+")}">Ja, nooit samen</button></div></div>`).join("")}
+  <div class="blok"><h2>Comfort</h2>
+    ${heren()?'<p class="mut" style="margin:0">Of iets comfortabel is, geef je per kledingstuk aan bij Kast.</p>':`<button class="regel" data-comfort="geenHakken" aria-pressed="${p.comfort.geenHakken}"><span>Liever geen hakken</span><i></i></button><p class="mut" style="margin:6px 0 0">Of iets comfortabel is, geef je per kledingstuk aan bij Kast.</p>`}</div>
+  ${(TYPEREGELS[p.kleurtype]||[]).length?`<div class="blok"><h2>Regels bij ${kt[0].toLowerCase()}</h2><p class="mut">Deze horen bij je kleurtype en komen er vanzelf bij.</p>
+    ${TYPEREGELS[p.kleurtype].map(r=>`<button class="regel" data-regel="${r.id}" aria-pressed="${regelAan(r.id)}"><span>${r.tekst}</span><i></i></button>`).join("")}</div>`:""}
+  ${["Kleur","Combineren","Voorkeur"].map(g=>`<div class="blok"><h2>Regels: ${g.toLowerCase()}</h2>${g==="Voorkeur"?'<p class="mut">Deze verbieden niks, ze zetten een outfit hoger of lager.</p>':""}
+    ${REGELS.filter(r=>r.groep===g).map(r=>`<button class="regel" data-regel="${r.id}" aria-pressed="${regelAan(r.id)}"><span>${r.tekst}</span><i></i></button>`).join("")}</div>`).join("")}
+  <div class="blok"><h2>Mijn eigen regels: nooit samen</h2><p class="mut">Kies twee kleuren of kledingstukken die je nooit samen wilt zien.</p>
+    ${p.nooit.map((r,i)=>`<div class="eigen"><span>${esc(naam(r.a))} + ${[].concat(r.b).map(b=>esc(naam(b))).join(", ")}</span><button data-weg-regel="${i}">Verwijder</button></div>`).join("")}
+    <div class="nooit"><select id="nooit-a" aria-label="Eerste kleur of kledingstuk"><option value="">Kies…</option><optgroup label="Kleuren">${opties.filter(o=>o[0].startsWith("k:")).map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</optgroup><optgroup label="Kledingstukken">${opties.filter(o=>o[0].startsWith("s:")).map(o=>`<option value="${o[0]}">${esc(o[1])}</option>`).join("")}</optgroup></select>
+    <span class="mut">met</span><select id="nooit-b" aria-label="Tweede kleur of kledingstuk"><option value="">Kies…</option><optgroup label="Kleuren">${opties.filter(o=>o[0].startsWith("k:")).map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</optgroup><optgroup label="Kledingstukken">${opties.filter(o=>o[0].startsWith("s:")).map(o=>`<option value="${o[0]}">${esc(o[1])}</option>`).join("")}</optgroup></select></div>
+    <button class="secundair" id="nooit-voeg" style="width:100%">Voeg regel toe</button></div>
+  ${SITE?`<div class="blok"><h2>Over Ta-daa</h2>
+    ${[["werkt","Hoe werkt Ta-daa?"],["scherm","Zet Ta-daa op je beginscherm"],["privacy","Privacy: waar blijven je gegevens?"],["backup","Back-up maken of terugzetten"],["wissen","Verwijder al mijn gegevens"]].map(([k,t])=>`<button class="regel" data-uitleg="${k}"><span>${t}</span><span class="mut">›</span></button>`).join("")}</div>`:""}`;
+  app.querySelectorAll("[data-uitleg]").forEach(b=>b.onclick=()=>uitleg(b.dataset.uitleg));
+  const zet=f=>{S.profiel=p;f(p);bewaar();_ideeCache=null;const y=scrollY;ik();scrollTo(0,y);};
+  app.querySelectorAll("[data-afd]").forEach(b=>b.onclick=()=>zet(p=>p.afdeling=b.dataset.afd));
+  app.querySelectorAll("[data-zone]").forEach(b=>b.onclick=()=>zet(p=>{const z=b.dataset.zone;p.zones[z]=STANDEN[(STANDEN.indexOf(mag(z))+1)%3];}));
+  app.querySelectorAll("[data-kt]").forEach(b=>b.onclick=()=>zet(p=>p.kleurtype=b.dataset.kt));
+  app.querySelectorAll("[data-comfort]").forEach(b=>b.onclick=()=>zet(p=>p.comfort[b.dataset.comfort]=!p.comfort[b.dataset.comfort]));
+  app.querySelectorAll("[data-regel]").forEach(b=>b.onclick=()=>zet(p=>{const id=b.dataset.regel,i=p.regelsUit.indexOf(id);i>-1?p.regelsUit.splice(i,1):p.regelsUit.push(id);}));
+  app.querySelectorAll("[data-sug-ja]").forEach(b=>b.onclick=()=>{const [x,y]=b.dataset.sugJa.split("+");zet(p=>p.nooit.push({a:"k:"+x,b:["k:"+y]}));melding("Toegevoegd aan je eigen regels");});
+  app.querySelectorAll("[data-sug-nee]").forEach(b=>b.onclick=()=>zet(p=>{p.genegeerd=[...(p.genegeerd||[]),b.dataset.sugNee];}));
+  app.querySelectorAll("[data-weg-regel]").forEach(b=>b.onclick=()=>zet(p=>p.nooit.splice(+b.dataset.wegRegel,1)));
+  $("#nooit-voeg").onclick=()=>{const a=$("#nooit-a").value,b=$("#nooit-b").value;
+    if(!a||!b||a===b){melding("Kies twee verschillende dingen");return;}
+    zet(p=>p.nooit.push({a,b})); melding("Regel toegevoegd. De ideeën zijn bijgewerkt.");};
+}
+
+/* ================= 7. Vandaag, Hoe voelde het, Laag voor laag ================= */
+let plek=0, andereTeller=0;
+const MODEPOLITIE={5:"Modepolitie hier. U heeft vijf keer op Andere getikt. Dat is genoteerd.",8:"Tip van de modepolitie: de eerste was ook al leuk.",12:"We sturen een agent langs met een willekeurige trui. Nog even geduld.",16:"De kast gaat even zitten. Kies er gewoon eentje, het is maar kleding.",20:"Proces-verbaal: u bent officieel te mooi voor al uw kleding. Zaak gesloten."};
+const vandaagDatum=()=>new Date().toISOString().slice(0,10);
+const ZIN=[["alles","Alles"],...BEHOEFTES];
+function zinNu(){return Object.keys(behoefte).find(k=>behoefte[k])||"alles";}
+function vandaag(){
+  if(SITE&&!S.welkom) return welkom();
+  const open=S.gedragen.filter(g=>!g.klaar).slice(-1)[0];
+  const tijdVoorVraag=open&&(open.datum<vandaagDatum()||new Date().getHours()>=17);   // pas 's avonds of de volgende dag
+  if(open&&vind(open.nr)&&tijdVoorVraag&&!(open.later&&open.later>=vandaagDatum())) return voelde(open);
+  const kleding=kastNu().filter(k=>k.soort!=="schoenen").length;
+  const lijst=ranglijst();
+  const o=lijst.length?lijst[plek%lijst.length]:null;
+  const politie=Object.keys(MODEPOLITIE).map(Number).filter(x=>x<=andereTeller).pop();
+  const weerNaam=WEER.find(w=>w[0]===weerNu())[1], zinNaam=ZIN.find(z=>z[0]===zinNu())[1];
+  app.innerHTML=`<div class="midden"><div class="boven">${groet()}</div><h1>Wat wil je vandaag aan?</h1>
+  <div class="wissels"><button class="wisselknop" id="weerknop" aria-label="Weer: ${weerNaam}. Tik om te wisselen"><small>Weer</small><b>${weerNaam}</b></button>
+    <button class="wisselknop" id="zinknop" aria-label="Zin in: ${zinNaam}. Tik om te wisselen"><small>Zin in</small><b>${zinNaam}</b></button></div></div>
+  ${politie?`<div class="politie" role="status"><b>Modepolitie</b>${MODEPOLITIE[politie]}</div>`:""}
+  ${o?`<button class="tafel" id="open" aria-label="Bekijk deze outfit laag voor laag">${polaroids(o.stukken)}</button>
+    <div class="knoppen"><button class="secundair" id="andere">${ICO.wissel}Andere</button><button class="primair" id="aan">Trek ik aan</button></div>`
+  :kleding<2?`<div class="leeg-staat"><b>Je kast is nog leeg</b><br>Voeg eerst wat kleding toe. Dan gaat Ta-daa voor je combineren.</div><button class="primair" id="naarkast" style="margin-top:10px">Kleding toevoegen</button>`
+  :`<div class="leeg-staat">Geen outfits voor ${weerNaam.toLowerCase()} weer${zinNu()!=="alles"?" die "+zinNaam.toLowerCase()+" zijn":""}. Tik op het weer of op "Zin in" om te wisselen.</div>`}`;
+  if(o){
+    $("#andere").onclick=()=>{overgeslagen(o.nr);plek++;andereTeller++;vandaag();};
+    $("#open").onclick=()=>laagVoorLaag(o.nr,"vandaag");
+    $("#aan").onclick=e=>{trekAan(o.nr);const b=e.currentTarget;b.textContent="Aangetrokken ✓";b.classList.add("gedaan");b.disabled=true;};
+  }
+  if($("#naarkast")) $("#naarkast").onclick=()=>{tab="kast";kast.w="kast";toon();};
+  $("#weerknop").onclick=()=>{const i=WEER.findIndex(w=>w[0]===weerNu());S.weerVandaag={datum:vandaagDatum(),weer:WEER[(i+1)%3][0]};bewaar();_ideeCache=null;plek=0;vandaag();};
+  $("#zinknop").onclick=()=>{const i=ZIN.findIndex(z=>z[0]===zinNu()),n=ZIN[(i+1)%ZIN.length][0];behoefte=n==="alles"?{}:{[n]:true};plek=0;vandaag();};
+}
+const LAAGNAAM={Bovenlaag:"bovenlaag",Basis:"jurk",Top:"top",Accent:"eronder",Onder:"onder",Schoenen:"schoenen"};
+const POLAROID_PLEK={1:[[50,50,-2]],2:[[31,44,-5],[69,56,4]],3:[[28,30,-6],[72,34,5],[50,72,-2]],4:[[28,27,-6],[72,29,5],[29,73,4],[71,73,-3]],5:[[26,25,-6],[74,27,5],[50,50,2],[26,76,4],[74,76,-4]]};
+function polaroids(ids){ // de outfit als polaroids op een tafel; gewone foto's zien er zo toch netjes uit
+  const st=gesorteerd(ids).filter(id=>K[id]).slice(0,5), plek=POLAROID_PLEK[st.length]||POLAROID_PLEK[5];
+  const breedte={1:58,2:46,3:40,4:36,5:33}[st.length]||33;   // hoe meer lagen, hoe kleiner de polaroids
+  return st.map((id,i)=>{const [x,y,r]=plek[i];return `<span class="pol" style="width:${breedte}%;left:${x}%;top:${y}%;transform:translate(-50%,-50%) rotate(${r}deg);z-index:${i+1}"><img src="${K[id].foto}" alt="${esc(K[id].naam)}"><i>${LAAGNAAM[LAAG[K[id].soort]]||""}</i></span>`;}).join("");
+}
+function trekAan(nr){andereTeller=0;nr=bewaarIdee(nr);S.gedragen.push({nr,datum:vandaagDatum()});bewaar();melding("Veel plezier! Vanavond vraag ik hoe het voelde.");}
+
+const GEVOEL=[[85,"Helemaal mij"],[55,"Oké"],[20,"Niet mezelf"]];
+const OPVIEL=[["strak","Te strak"],["wijd","Te wijd"],["koud","Te koud"],["tewarm","Te warm"],["kleur","Blij van de kleur"],["complimenten","Complimenten"],["saai","Saai"]];
+const TEGENOVER={strak:"wijd",wijd:"strak",koud:"tewarm",tewarm:"koud"};
+function voelde(g){ // zo kort mogelijk: één tik, daarna eventueel wat opviel
+  const o=vind(g.nr), ids=gesorteerd(o.stukken);
+  g.opviel??=[];
+  app.innerHTML=`<div class="boven">${g.datum===vandaagDatum()?"Vandaag droeg je":"Laatst droeg je"}</div><h1>Hoe voelde deze outfit?</h1>
+  <div class="voelde"><div class="lagen-foto" style="--n:${Math.min(ids.length,4)}">${ids.map(foto).join("")}</div>
+    <div class="gevoel">${GEVOEL.map(([w,t])=>`<button class="secundair" data-mij="${w}" aria-pressed="${g.mij===w}">${t}</button>`).join("")}</div>
+    ${g.mij!=null?`<p class="mut" style="margin:14px 0 8px">Viel er iets op? Mag ook niks.</p><div class="pillen">${OPVIEL.map(([k,t])=>`<button class="pil" data-opviel="${k}" aria-pressed="${g.opviel.includes(k)}">${t}</button>`).join("")}</div>`:""}</div>
+  ${g.mij!=null?'<button class="primair" id="ok">Klaar</button>':""}<button class="link" id="later">Nog niet gedragen? Vraag het morgen</button>`;
+  app.querySelectorAll("[data-mij]").forEach(b=>b.onclick=()=>{g.mij=+b.dataset.mij;voelde(g);});
+  app.querySelectorAll("[data-opviel]").forEach(b=>b.onclick=()=>{const k=b.dataset.opviel,i=g.opviel.indexOf(k);i>-1?g.opviel.splice(i,1):g.opviel.push(k);if(i<0&&TEGENOVER[k])g.opviel=g.opviel.filter(x=>x!==TEGENOVER[k]);voelde(g);});
+  if($("#ok")) $("#ok").onclick=()=>{
+    const strak=g.opviel.includes("strak")||g.opviel.includes("knelde");
+    g.zit=strak?20:60; g.pas=strak?"strak":g.opviel.includes("wijd")?"wijd":""; g.warm=g.opviel.includes("koud")?10:g.opviel.includes("tewarm")?90:50;
+    g.klaar=true;g.later=false;bewaar();melding(g.mij>=70?"Genoteerd. Deze komt vaker langs.":"Genoteerd.");vandaag();};
+  $("#later").onclick=()=>{g.later=vandaagDatum();bewaar();melding("Ik vraag het morgen nog een keer");vandaag();};
+}
+const gevoelTekst=g=>g.mij>=70?"helemaal mij":g.mij>=45?"oké":"niet mezelf";
+function nieuwNr(){return Math.max(0,...OUTFITS.map(o=>+o.nr),...S.extra.map(o=>+o.nr))+1;}
+function bewaarIdee(nr){ // een idee dat je bewaart of aantrekt, wordt een van je eigen outfits
+  const o=vind(nr); if(!o||!o.idee) return nr; const n=nieuwNr();
+  S.extra.push({nr:n,stukken:[...o.stukken],schoenen:o.schoenen||"",tip:"",eigen:true});
+  S.gedragen.forEach(g=>{if(String(g.nr)===String(nr)) g.nr=n;}); return String(n);
+}
+
+let werk=null; // tijdelijke versie als je in een outfit lagen wisselt
+function laagVoorLaag(nr,van){
+  const o=vind(nr); if(!o){tab=van;return toon();}
+  if(!werk||werk.nr!==o.nr) werk={nr:o.nr,stukken:[...o.stukken]};
+  const gewijzigd=werk.stukken.join()!==o.stukken.join(), ids=gesorteerd(werk.stukken);
+  const heeft=new Set(ids.map(id=>LAAG[K[id].soort]));
+  const leeg=["Accent","Schoenen"].filter(l=>!heeft.has(l)&&!(l==="Accent"&&heeft.has("Basis")&&!heeft.has("Top")));
+  const terugNaar={vandaag:"Vandaag",outfits:"Outfits"}[van]||"Terug";
+  app.innerHTML=`<button class="terug" id="terug">${ICO.terug}${terugNaar}</button>
+  <p class="mut">${o.idee?"Idee van de kast":favoriet(o)?"Favoriet":"Mijn outfit"}</p>
+  <div class="slots">${ids.map(slotKnop).join("")}${leeg.map(l=>`<button class="slot leeg" data-leeg="${l}"><span class="plek">${ICO.plus}</span><span><span class="wat">${l}</span><b>${l==="Accent"?"Hemdje eronder?":"Kies schoenen"}</b></span><span></span></button>`).join("")}</div>
+  ${o.schoenen||o.tip?`<div class="notitie">${o.tip?`<p>${esc(o.tip)}</p>`:""}${o.schoenen?`<p class="mut">${esc(o.schoenen)}</p>`:""}</div>`:""}
+  ${S.gedragen.map((g,i)=>[g,i]).filter(([g])=>String(g.nr)===o.nr).map(([g,i])=>`<div class="historie"><span>Gedragen ${g.datum.split("-").reverse().slice(0,2).join("-")} · ${g.klaar?gevoelTekst(g):"nog niet ingevuld"}</span><button data-gi="${i}">${g.klaar?"Pas aan":"Vul in"}</button></div>`).join("")}
+  ${tips(werk.stukken).map(t=>`<div class="tip"><b>Tip van de kast</b>${t}</div>`).join("")}
+  ${o.idee?`<button class="secundair" id="houd" style="width:100%;margin-bottom:8px">Bewaar bij mijn outfits</button>`:""}
+  ${gewijzigd?`<button class="secundair" id="nieuw" style="width:100%;margin-bottom:8px">Bewaar als nieuwe combi</button>`:""}
+  <button class="primair" id="aan">Trek ik aan</button>
+  <div id="wegplek"><button class="link" id="weg">${o.idee?"Dit idee niet meer laten zien":"Verwijder deze outfit"}</button></div>`;
+  $("#terug").onclick=()=>{werk=null;tab=van;toon();};
+  app.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>wisselVel(b.dataset.id,id=>{werk.stukken=werk.stukken.map(x=>x===b.dataset.id?id:x).filter(Boolean);laagVoorLaag(nr,van);}));
+  app.querySelectorAll("[data-weg-laag]").forEach(b=>b.onclick=()=>{werk.stukken=werk.stukken.filter(x=>x!==b.dataset.wegLaag);laagVoorLaag(nr,van);});
+  app.querySelectorAll("[data-leeg]").forEach(b=>b.onclick=()=>kiesVel(b.dataset.leeg,id=>{werk.stukken.push(id);laagVoorLaag(nr,van);}));
+  app.querySelectorAll("[data-gi]").forEach(b=>b.onclick=()=>{const g=S.gedragen[+b.dataset.gi];g.later=false;werk=null;tab="vandaag";markeerMenu();voelde(g);});
+  $("#aan").onclick=()=>{trekAan(o.nr);werk=null;tab="vandaag";toon();};
+  if(o.idee) $("#houd").onclick=()=>{bewaarIdee(o.nr);bewaar();werk=null;melding("Bewaard bij je outfits");tab=van;toon();};
+  if(gewijzigd) $("#nieuw").onclick=()=>bewaarVel(werk.stukken,o.schoenen,()=>{werk=null;});
+  $("#weg").onclick=()=>{
+    $("#wegplek").innerHTML=`<div class="bevestig"><p>${o.idee?"Dit idee weghalen?":"Deze outfit verwijderen?"}</p><div><button class="secundair" id="nee">Laat staan</button><button class="primair" id="ja">Verwijder</button></div></div>`;
+    $("#nee").onclick=()=>laagVoorLaag(nr,van);
+    $("#ja").onclick=()=>{const was=kopie({weg:S.weg,wegIdee:S.wegIdee,extra:S.extra});
+      if(o.idee) S.wegIdee.push(o.sleutel); else {S.weg.push(o.nr);S.extra=S.extra.filter(x=>String(x.nr)!==o.nr);}
+      bewaar();werk=null;tab=van;toon();
+      melding(o.idee&&suggesties().length?"Weggehaald. De kast heeft een tip voor je bij Dit ben ik.":"Verwijderd",()=>Object.assign(S,was));};
+  };
+  scrollTo(0,0);
+}
+function slotKnop(id){ // één laag: tik om te wisselen, kruisje om weg te halen
+  const it=K[id], l=LAAG[it.soort], extra=[labelTekst([id]),labels(id).hak&&it.soort!=="schoenen"?"alleen met hakken":""].filter(Boolean).join(" · ");
+  return `<div class="slot${l==="Accent"?" accent":""}"><button class="slot-hoofd" data-id="${id}" aria-label="${esc(it.naam)} wisselen">${foto(id)}<span><span class="wat">${l}</span><b>${esc(it.naam)}</b><small>${extra||"&nbsp;"}</small></span><span class="wissel">${ICO.wissel}</span></button><button class="slot-weg" data-weg-laag="${id}" aria-label="${esc(it.naam)} weghalen">${ICO.x}</button></div>`;
+}
+function tips(ids){ // de kast legt uit wat jouw regels van een combi vinden
+  const its=ids.map(id=>K[id]).filter(Boolean), c=context(ids), t=[];
+  if(regelAan("max3")&&new Set(c.fam).size>3) t.push(`Dit zijn ${new Set(c.fam).size} kleuren. Jouw regel: maximaal 3.`);
+  if(its.some(i=>i.scheveHals)&&!its.some(i=>i.soort==="hemdje")) t.push("Scheve hals: kies een gekleurd hemdje eronder, dan piept het bandje eruit.");
+  if(regelAan("vesttrui")&&REGELS.find(r=>r.id==="vesttrui").verbod(c)) t.push("Een vest over een trui wordt snel te warm en te dik. Kies een top eronder.");
+  if(regelAan("wijd")&&REGELS.find(r=>r.id==="wijd").verbod(c)) t.push("Wijd met wijd: kies één van de twee getailleerd.");
+  if(its.some(i=>i.soort!=="schoenen"&&labels(i.id).hak)&&its.some(i=>i.soort==="schoenen"&&!labels(i.id).hak)) t.push("Dit stuk draag je alleen met hakken.");
+  if(nooitSamen(ids)) t.push("Deze combi staat bij jouw eigen regels als 'nooit samen'.");
+  const z=P().zones; const bedekt=its.some(i=>LAAG[i.soort]==="Bovenlaag");
+  if(!bedekt&&z.armen==="nee"&&its.some(i=>i.soort!=="hemdje"&&labels(i.id).zichtbaar.includes("armen"))) t.push("Je armen zijn bloot en die bedek je liever. Een vest of bolero erover?");
+  return t;
+}
+
+/* ================= 8. Outfits en Nieuwe combi ================= */
+function outfits(){
+  const f=["mijn","fav","idee"].includes(outfits.f)?outfits.f:"mijn", lijst=alle();
+  const hoort=(o,k)=>k==="idee"?o.idee:k==="fav"?(!o.idee&&favoriet(o)):!o.idee;
+  const l=lijst.filter(o=>hoort(o,f)).sort((a,b)=>(a.idee-b.idee)||(+a.nr-+b.nr));
+  app.innerHTML=`<div class="kop"><h1>Mijn outfits</h1><button class="toevoeg" id="nieuwecombi">${ICO_EXTRA.lagen}Nieuwe combi</button></div>
+  <div class="filters">${[["mijn","Mijn outfits"],["fav","Favorieten"],["idee","Ideeën"]].map(([k,t])=>`<button class="pil" data-f="${k}" aria-pressed="${f===k}">${t} <span class="tel">${lijst.filter(o=>hoort(o,k)).length}</span></button>`).join("")}</div>
+  ${f==="fav"&&!lijst.some(o=>hoort(o,"fav"))?'<p class="mut" style="margin-bottom:10px">Outfits waarbij je na het dragen "Helemaal mij" kiest, komen hier vanzelf.</p>':""}
+  ${f==="idee"?'<p class="mut" style="margin-bottom:10px">De kast bedenkt deze combi’s zelf, met jouw regels. Tik erop: bewaar wat je leuk vindt, haal de rest weg.</p>':""}
+  <div class="outfit-raster">${l.map(o=>`<button class="kaart" data-o="${o.nr}"><div class="mini-pol">${gesorteerd(o.stukken).filter(id=>K[id]).slice(0,4).map((id,i)=>`<span style="transform:rotate(${[-3,2,3,-2][i]}deg)"><img src="${K[id].foto}" alt=""></span>`).join("")}</div><div class="onder"><span>${labelTekst(o.stukken)}</span>${favoriet(o)?'<span class="etiket">favoriet</span>':o.idee?'<span class="etiket">idee</span>':""}</div></button>`).join("")||(f==="fav"?"":`<div class="leeg-staat">Hier staat nog niks. Bewaar een idee of tik op Nieuwe combi.</div>`)}</div>`;
+  app.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{outfits.f=b.dataset.f;outfits();});
+  app.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>laagVoorLaag(b.dataset.o,"outfits"));
+  $("#nieuwecombi").onclick=()=>combi();
+}
+let combiStukken=[];
+function combi(){
+  const ids=gesorteerd(combiStukken), heeft=new Set(ids.map(id=>LAAG[K[id].soort]));
+  const vrij=["Bovenlaag","Top","Accent","Onder","Schoenen"].filter(l=>!heeft.has(l)&&!(l==="Top"&&heeft.has("Basis")));
+  app.innerHTML=`<button class="terug" id="terug">${ICO.terug}Outfits</button><h1>Nieuwe combi</h1><p class="mut">Vul de lagen die je wilt. Een jurk of jumpsuit kies je bij Top.</p>
+  <div class="slots">${ids.map(slotKnop).join("")}${vrij.map(l=>`<button class="slot leeg" data-leeg="${l}"><span class="plek">${ICO.plus}</span><span><span class="wat">${l}</span><b>Kies ${l==="Top"?"een top of jurk":l.toLowerCase()}</b></span><span></span></button>`).join("")}</div>
+  ${combiStukken.length?tips(combiStukken).map(t=>`<div class="tip"><b>Tip van de kast</b>${t}</div>`).join(""):""}
+  <button class="primair" id="bewaar" ${combiStukken.length<2?"disabled":""}>${combiStukken.length<2?"Kies minstens 2 stuks":"Bewaar deze combi"}</button>`;
+  $("#terug").onclick=()=>{tab="outfits";toon();};
+  app.querySelectorAll("[data-leeg]").forEach(b=>b.onclick=()=>kiesVel(b.dataset.leeg==="Top"?"TopBasis":b.dataset.leeg,id=>{combiStukken.push(id);combi();}));
+  app.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>wisselVel(b.dataset.id,id=>{combiStukken=combiStukken.map(x=>x===b.dataset.id?id:x).filter(Boolean);combi();}));
+  app.querySelectorAll("[data-weg-laag]").forEach(b=>b.onclick=()=>{combiStukken=combiStukken.filter(x=>x!==b.dataset.wegLaag);combi();});
+  $("#bewaar").onclick=()=>{if(combiStukken.length>=2) bewaarVel(combiStukken,"",()=>{combiStukken=[];});};
+  scrollTo(0,0);
+}
+
+/* ================= 9. Kast, foto's toevoegen, labelen ================= */
+const GROEP=[["alles","Alles"],["Bovenlaag","Bovenlagen"],["Top","Tops"],["Basis","Jurken"],["Accent","Hemdjes"],["Onder","Onder"],["Schoenen","Schoenen"]];
+function syncNieuw(){ // zelf toegevoegde stukken (in S.nieuw) horen ook in de kast
+  KAST.length=0; KAST.push(...KAST_BASIS);
+  for(const n of (S.nieuw||[])){
+    if(!n.weer) n.weer=n.zomer?["warm"]:n.warmte==="warm"?["koud","fris"]:n.warmte==="dun"?["fris","warm"]:["koud","fris","warm"];  // oude labels omzetten
+    const it={...n,foto:fotoSrc(n.asset)}; K[n.id]=it; if(n.klaar) KAST.push(it);}
+  _ideeCache=null;
+}
+function laatstGedragen(id){ // datum waarop dit stuk voor het laatst in een gedragen outfit zat
+  const d=S.gedragen.filter(g=>vind(g.nr)?.stukken.includes(id)).map(g=>g.datum).sort().pop();
+  return d||null;
+}
+function kastCheck(){ // stukken die je al een maand niet droeg, en die je niet net hebt beantwoord
+  S.start??=vandaagDatum();
+  const dagen=d=>(new Date(vandaagDatum())-new Date(d))/864e5;
+  if(dagen(S.start)<30) return [];
+  return kastNu().filter(k=>{const l=laatstGedragen(k.id);const later=S.check?.[k.id];
+    return (!l||dagen(l)>=30)&&!(later&&later>vandaagDatum());});
+}
+const teLabelen=()=>(S.nieuw||[]).filter(n=>!n.klaar&&!S.wegStuk.includes(n.id));
+function kast(){
+  const g=kast.g||"alles", w=kast.w||"kast", open=teLabelen();
+  const groepen=GROEP.filter(([k])=>!(heren()&&k==="Basis"));
+  const check=w==="kast"?kastCheck()[0]:null;
+  app.innerHTML=`<div class="kop"><h1>Mijn kast</h1><button class="toevoeg" id="plus">${ICO_EXTRA.camera}Kleding toevoegen</button></div>
+  ${check?`<div class="kastcheck"><img src="${check.foto}" alt=""><div><b>Hé, draag je dit eigenlijk nog?</b><p class="mut">${esc(check.naam)}: al een maand niet gedragen.</p></div>
+    <div class="check-knoppen"><button class="secundair" data-check="ja">Ja, gewoon nog</button><button class="secundair" data-check="weer">Alleen bij bepaald weer</button><button class="secundair" data-check="weg">Nee, mag weg</button></div>
+    <div class="pillen" id="check-weer" hidden>${WEER.map(([w,t])=>`<button class="pil" data-check-weer="${w}">${t}</button>`).join("")}<button class="primair" id="check-weer-ok" style="margin-top:6px">Klaar</button></div></div>`:""}
+  <input type="file" id="bestand" accept="image/*" multiple hidden>
+  <div class="seg" role="tablist"><button role="tab" data-w="kast" aria-selected="${w==="kast"}">In mijn kast</button><button role="tab" data-w="labelen" aria-selected="${w==="labelen"}">Nog labelen${open.length?` <b>${open.length}</b>`:""}</button></div>
+  ${w==="kast"?`<div class="filters">${groepen.map(([k,t])=>`<button class="pil" data-g="${k}" aria-pressed="${g===k}">${t}</button>`).join("")}</div>
+    <div class="raster">${kastNu().filter(k=>g==="alles"||LAAG[k.soort]===g).map(k=>`<button class="stuk" data-k="${k.id}"><img src="${k.foto}" alt="" loading="lazy"><span>${esc(k.naam)}</span><small>${labelTekst([k.id])||(labels(k.id).accent?"accent":"")}</small></button>`).join("")}</div>`
+  :open.length?`<p class="mut" style="margin-bottom:10px">Loop ze één voor één door en geef ze de juiste info. Daarna staan ze in je kast.</p>
+    <button class="primair" id="start" style="margin-bottom:12px">Begin met labelen</button>
+    <div class="raster">${open.map(n=>`<button class="stuk" data-n="${n.id}"><img src="${fotoSrc(n.asset)}" alt=""><span>Nog labelen</span></button>`).join("")}</div>`
+  :`<div class="leeg-staat">Niks te labelen. Tik op Kleding toevoegen. Meer foto's tegelijk mag.</div>`}`;
+  app.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{kast.w=b.dataset.w;kast();});
+  if(check){
+    const later=d=>{const t=new Date();t.setDate(t.getDate()+d);(S.check??={})[check.id]=t.toISOString().slice(0,10);};
+    const gekozen=[];
+    app.querySelectorAll("[data-check]").forEach(b=>b.onclick=()=>{const k=b.dataset.check;
+      if(k==="ja"){later(30);bewaar();melding("Top, dan blijft hij erin");kast();}
+      if(k==="weg"){S.wegStuk.push(check.id);bewaar();melding("Uit je kast gehaald",()=>{S.wegStuk=S.wegStuk.filter(x=>x!==check.id);});kast();}
+      if(k==="weer"){$("#check-weer").hidden=false;}});
+    app.querySelectorAll("[data-check-weer]").forEach(b=>b.onclick=()=>{const w=b.dataset.checkWeer,i=gekozen.indexOf(w);i>-1?gekozen.splice(i,1):gekozen.push(w);b.setAttribute("aria-pressed",i<0);});
+    $("#check-weer-ok").onclick=()=>{if(!gekozen.length){melding("Kies bij welk weer je hem draagt");return;}
+      S.labels[check.id]={...labels(check.id),weer:[...gekozen]};later(60);bewaar();_ideeCache=null;melding("Aangepast. De kast stelt hem nu alleen bij dat weer voor.");kast();};
+  }
+  app.querySelectorAll("[data-g]").forEach(b=>b.onclick=()=>{kast.g=b.dataset.g;kast();});
+  app.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>labelVel(b.dataset.k));
+  app.querySelectorAll("[data-n]").forEach(b=>b.onclick=()=>labelStap(b.dataset.n));
+  if($("#start")) $("#start").onclick=()=>labelStap(open[0].id);
+  $("#plus").onclick=()=>$("#bestand").click();
+  $("#bestand").onchange=e=>voegToe([...e.target.files]);
+}
+async function verwerk(file){ // foto verkleinen en de hoofdkleur eruit halen (rekenen, geen AI)
+  const url=URL.createObjectURL(file);
+  const img=await new Promise((ok,nee)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=nee;i.src=url;});
+  const sc=Math.min(1,700/Math.max(img.naturalWidth,img.naturalHeight));
+  const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*sc); c.height=Math.round(img.naturalHeight*sc);
+  const x=c.getContext("2d",{willReadFrequently:true}); x.drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url);
+  const blob=await new Promise(ok=>c.toBlob(ok,"image/jpeg",0.85));
+  const los=knipUit(x,c.width,c.height);
+  // kleur bepalen: liefst op de uitgeknipte foto (dan telt de achtergrond niet mee)
+  const kleur=los?hoofdkleur(los.getContext("2d",{willReadFrequently:true}),los.width,los.height,true):hoofdkleur(x,c.width,c.height);
+  return {kleur,blob,uitgeknipt:los?await new Promise(ok=>los.toBlob(ok,"image/png")):null};
+}
+function knipUit(x,w,h){
+  // Haalt een effen achtergrond weg, zonder AI: vanaf de rand kleurt hij alles weg wat op de randkleur lijkt
+  // (zoals emmer-vullen in een tekenprogramma). Werkt goed op een muur, laken of witte achtergrond.
+  const img=x.getImageData(0,0,w,h), d=img.data, weg=new Uint8Array(w*h);
+  let r=0,g=0,b=0,n=0; const randpx=[];
+  for(let i=0;i<w;i+=2){randpx.push(i,(h-1)*w+i);} for(let j=0;j<h;j+=2){randpx.push(j*w,j*w+w-1);}
+  randpx.forEach(p=>{r+=d[p*4];g+=d[p*4+1];b+=d[p*4+2];n++;}); r/=n;g/=n;b/=n;
+  const lijkt=p=>Math.hypot(d[p*4]-r,d[p*4+1]-g,d[p*4+2]-b)<42;
+  const rij=randpx.filter(lijkt); rij.forEach(p=>weg[p]=1);
+  while(rij.length){const p=rij.pop(),px=p%w,py=(p/w)|0;
+    for(const q of [px>0?p-1:-1,px<w-1?p+1:-1,py>0?p-w:-1,py<h-1?p+w:-1]) if(q>=0&&!weg[q]&&lijkt(q)){weg[q]=1;rij.push(q);}}
+  let over=0,x0=w,y0=h,x1=0,y1=0;
+  for(let p=0;p<w*h;p++){ if(weg[p]) d[p*4+3]=0; else {over++;const px=p%w,py=(p/w)|0;if(px<x0)x0=px;if(px>x1)x1=px;if(py<y0)y0=py;if(py>y1)y1=py;} }
+  const deel=over/(w*h); if(deel<.08||deel>.92) return null;   // mislukt: dan houden we de gewone foto
+  x.putImageData(img,0,0);
+  const c=document.createElement("canvas"); c.width=x1-x0+1; c.height=y1-y0+1;
+  c.getContext("2d").drawImage(x.canvas,x0,y0,c.width,c.height,0,0,c.width,c.height);
+  return c;
+}
+function hsl([r,g,b]){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;let hh=0,s=0;
+  if(mx!==mn){const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);hh=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;hh*=60;}return [hh,s,l];}
+function hoofdkleur(x,w,h,uitgeknipt){
+  // Zoekt de hoofdkleur zoals een mens kijkt: eerst de kleurtint, dan pas licht of donker (rekenen, geen AI).
+  // Bij een uitgeknipte foto tellen alleen de zichtbare pixels; anders laat hij pixels weg die op de rand (achtergrond) lijken.
+  const d=x.getImageData(0,0,w,h).data, px=i=>[d[i],d[i+1],d[i+2]];
+  let rand=[0,0,0],n=0; const tel=p=>{rand=rand.map((v,i)=>v+p[i]);n++;};
+  for(let xx=0;xx<w;xx+=4){tel(px(xx*4));tel(px(((h-1)*w+xx)*4));}
+  for(let yy=0;yy<h;yy+=4){tel(px(yy*w*4));tel(px((yy*w+w-1)*4));}
+  rand=rand.map(v=>v/n);
+  const m=uitgeknipt?0:.2, kleurig=[], grijs=[];
+  for(let yy=Math.floor(h*m);yy<h*(1-m);yy+=3) for(let xx=Math.floor(w*m);xx<w*(1-m);xx+=3){
+    const i=(yy*w+xx)*4, p=px(i);
+    if(uitgeknipt?d[i+3]<128:Math.hypot(p[0]-rand[0],p[1]-rand[1],p[2]-rand[2])<45) continue;
+    const c=hsl(p); (c[1]>.18&&c[2]>.08&&c[2]<.95?kleurig:grijs).push(c);
+  }
+  const totaal=kleurig.length+grijs.length; if(!totaal) return null;
+  let doel;
+  if(kleurig.length/totaal>.3){ // kleurige stof: de tint die het vaakst voorkomt wint
+    const bakken={}; kleurig.forEach(c=>{const k=Math.round(c[0]/20)%18;(bakken[k]??=[]).push(c);});
+    const win=Object.values(bakken).sort((a,b)=>b.length-a.length)[0];
+    const l=win.map(c=>c[2]).sort((a,b)=>a-b), s=win.map(c=>c[1]).sort((a,b)=>a-b);
+    const hue=Math.atan2(win.reduce((a,c)=>a+Math.sin(c[0]*Math.PI/180),0),win.reduce((a,c)=>a+Math.cos(c[0]*Math.PI/180),0))*180/Math.PI;
+    doel=[(hue+360)%360, s[Math.floor(s.length*.6)], l[Math.floor(l.length*.65)]];   // iets lichter dan gemiddeld: schaduw telt minder
+  } else { const l=grijs.map(c=>c[2]).sort((a,b)=>a-b); doel=[0,0,l[Math.floor(l.length/2)]]; }
+  const rgb=hx=>[1,3,5].map(i=>parseInt(hx.slice(i,i+2),16));
+  const afstand=([h1,s1,l1],[h2,s2,l2])=>{const dh=Math.min(Math.abs(h1-h2),360-Math.abs(h1-h2))/180;const grauw=Math.min(s1,s2)<.15;
+    return (grauw?0:dh*2.2)+Math.abs(s1-s2)*.8+Math.abs(l1-l2)*1.2;};
+  return PALET.map(([naam,hx])=>[naam,afstand(doel,hsl(rgb(hx)))]).sort((a,b)=>a[1]-b[1])[0][0];
+}
+async function voegToe(files){
+  if(!files.length) return;
+  if(!SITE){let a=null;try{a=await window.claude?.use?.("assets");}catch(e){} if(!a){melding("Foto's toevoegen lukt hier niet.");return;}}
+  const nieuw=[];
+  for(let i=0;i<files.length;i++){
+    melding(`Foto ${i+1} van ${files.length} toevoegen…`);
+    try{
+      const {blob,kleur,uitgeknipt}=await verwerk(files[i]);
+      const r={id:await bewaarFoto(blob,"image/jpeg")};
+      const los=uitgeknipt?{id:await bewaarFoto(uitgeknipt,"image/png")}:null;
+      const id="n"+Date.now().toString(36)+i;
+      S.nieuw.push({id,asset:los?los.id:r.id,origineel:r.id,uitgeknipt:los?los.id:null,kleurAuto:kleur,kleuren:kleur?[kleur]:[],soort:"",pasvorm:"",lengte:"",patroon:false,dragen:[],tags:[],zichtbaar:[],weer:["koud","fris","warm"],hak:false,klaar:false});
+      nieuw.push(id);
+    }catch(e){melding(`Foto ${i+1} lukte niet. Probeer hem nog een keer.`);}
+  }
+  bewaar(); syncNieuw();
+  if(nieuw.length){melding(nieuw.length===1?"Foto toegevoegd":`${nieuw.length} foto's toegevoegd`);kast.w="labelen";labelStap(nieuw[0]);}
+}
+function labelStap(id){ // één voor één de juiste info geven
+  const n=S.nieuw.find(x=>x.id===id); if(!n){kast();return;}
+  n.zichtbaar??=[];
+  const rij=teLabelen(), plek=rij.findIndex(x=>x.id===id), totaal=rij.length;
+  const schoen=n.soort==="schoenen", onder=["broek","rok"].includes(n.soort);
+  const chip=(veld,waarde,tekst,meer)=>`<button class="pil" data-veld="${veld}" data-waarde="${waarde}" data-meer="${meer?1:0}" aria-pressed="${meer?(n[veld]||[]).includes(waarde):n[veld]===waarde}">${tekst}</button>`;
+  const groep=(titel,inhoud)=>`<div class="groep"><h3>${titel}</h3><div class="pillen">${inhoud}</div></div>`;
+  const swatch=([naam,hx])=>{const i=n.kleuren.indexOf(naam);return `<button class="swatch" data-kleur="${naam}" aria-pressed="${i>-1}" aria-label="${naam}" title="${naam}" style="--k:${hx}">${i>-1?`<b>${i+1}</b>`:""}</button>`;};
+  const soorten=SOORTEN.filter(([k])=>!(heren()&&["rok","jurk"].includes(k)));
+  n.weer??=["koud","fris","warm"];
+  const klaarOk=n.soort&&n.kleuren.length&&n.weer.length;
+  app.innerHTML=`<div class="kop" style="margin-bottom:0"><button class="terug" id="terug">${ICO.terug}Kast</button><span class="mut">${plek>-1?`${plek+1} van ${totaal}`:"aanpassen"}</span></div>
+  ${plek>-1?`<div class="voortgang"><i style="width:${Math.round(plek/Math.max(totaal,1)*100)}%"></i></div>`:""}
+  <img class="groot" src="${fotoSrc(n.asset)}" alt="">
+  ${n.uitgeknipt?`<div class="pillen" style="margin:-4px 0 14px"><button class="pil" data-foto="los" aria-pressed="${n.asset===n.uitgeknipt}">Achtergrond weg</button><button class="pil" data-foto="orig" aria-pressed="${n.asset===n.origineel}">Originele foto</button></div>`:'<p class="mut" style="margin:-4px 0 14px">De achtergrond kon niet weg. Tip: fotografeer op een effen laken of tegen een muur.</p>'}
+  ${groep("Wat is het?",soorten.map(([k,t])=>chip("soort",k,t)).join(""))}
+  <div class="groep"><h3>Welke kleur?</h3><p class="mut" style="margin-bottom:8px">${n.kleurAuto?`Uit je foto: <b>${n.kleurAuto}</b>. Klopt het niet? Tik een andere.`:"Tik de hoofdkleur."} Meer kleuren mag: de eerste is de hoofdkleur.</p>
+    <div class="swatches">${PALET.map(swatch).join("")}</div>
+    <div class="pillen" style="margin-top:8px"><button class="pil" data-bool="patroon" aria-pressed="${!!n.patroon}">Heeft een patroon</button></div></div>
+  ${schoen?"":groep("Pasvorm",["getailleerd","recht","wijd"].map(v=>chip("pasvorm",v,v[0].toUpperCase()+v.slice(1))).join("")+'<span class="breek"></span>'+["kort","normaal","lang"].map(v=>chip("lengte",v,v[0].toUpperCase()+v.slice(1))).join(""))}
+  ${schoen?"":groep("Hoe draag je het?",DRAGEN.map(([v,t])=>chip("dragen",v,t,true)).join(""))}
+  ${schoen?"":groep("Wat laat het zien?",zones().map(([z,t])=>chip("zichtbaar",z,t,true)).join(""))}
+  ${groep("Voor welk weer?",WEER.map(([v,t])=>chip("weer",v,t,true)).join(""))}
+  ${groep("Hoe voelt dit stuk?",[["comfy","Comfortabel"],["sexy","Sexy"],["stoer","Stoer"]].map(([v,t])=>chip("tags",v,t,true)).join("")+((onder||schoen)&&!heren()?`<button class="pil" data-bool="hak" aria-pressed="${!!n.hak}">${schoen?"Met hak":"Alleen met hakken"}</button>`:""))}
+  <div class="vastonder"><button class="primair" id="volgende" ${klaarOk?"":"disabled"}>${klaarOk?(plek>-1&&plek<totaal-1?"Klaar, volgende foto":"Klaar"):"Kies eerst wat het is, de kleur en het weer"}</button>
+  <div style="display:flex;justify-content:space-between">${plek>-1&&totaal>1?'<button class="link" id="overslaan">Later doen</button>':"<span></span>"}<button class="link" id="fotoweg">Verwijder foto</button></div></div>`;
+  const opnieuw=()=>{const y=scrollY;labelStap(id);scrollTo(0,y);};
+  app.querySelectorAll("[data-veld]").forEach(b=>b.onclick=()=>{const v=b.dataset.veld,w=b.dataset.waarde;
+    if(b.dataset.meer==="1"){n[v]??=[];const i=n[v].indexOf(w);i>-1?n[v].splice(i,1):n[v].push(w);} else n[v]=n[v]===w?"":w;
+    if(v==="soort"&&w==="hemdje"&&!n.dragen.includes("onder")) n.dragen.push("onder");
+    bewaar();opnieuw();});
+  app.querySelectorAll("[data-foto]").forEach(b=>b.onclick=()=>{n.asset=b.dataset.foto==="los"?n.uitgeknipt:n.origineel;bewaar();syncNieuw();opnieuw();});
+  app.querySelectorAll("[data-kleur]").forEach(b=>b.onclick=()=>{const k=b.dataset.kleur,i=n.kleuren.indexOf(k);i>-1?n.kleuren.splice(i,1):n.kleuren.length<3&&n.kleuren.push(k);bewaar();opnieuw();});
+  app.querySelectorAll("[data-bool]").forEach(b=>b.onclick=()=>{n[b.dataset.bool]=!n[b.dataset.bool];bewaar();opnieuw();});
+  $("#terug").onclick=()=>{tab="kast";kast();};
+  if($("#overslaan")) $("#overslaan").onclick=()=>{labelStap(rij[(plek+1)%totaal].id);scrollTo(0,0);};
+  $("#fotoweg").onclick=()=>{S.wegStuk.push(id);bewaar();syncNieuw();melding("Foto verwijderd",()=>{S.wegStuk=S.wegStuk.filter(x=>x!==id);syncNieuw();});const r=teLabelen();r.length?labelStap(r[0].id):kast();};
+  $("#volgende").onclick=()=>{ if(!klaarOk) return;
+    const was=n.klaar; n.klaar=true;
+    n.naam=n.naam||`${n.kleuren[0]} ${SOORTNAAM[n.soort]}`.replace(/^./,c=>c.toUpperCase());
+    S.labels[id]={tags:[...n.tags],hak:!!n.hak,dragen:[...n.dragen],accent:n.soort==="hemdje"||n.dragen.includes("onder"),zichtbaar:[...n.zichtbaar],weer:[...n.weer]};
+    bewaar(); syncNieuw();
+    const r=teLabelen();
+    if(!was&&r.length){labelStap(r[0].id);scrollTo(0,0);}
+    else{kast.w="kast";tab="kast";kast();scrollTo(0,0);melding(was?"Aangepast":`In je kast. De kast heeft nu ${alle().filter(o=>o.idee).length} ideeën.`);}
+  };
+}
+function labelVel(id){ // gevoel en details van een stuk aanpassen
+  const it=K[id], l=kopie(labels(id)), zelf=(S.nieuw||[]).some(x=>x.id===id);
+  const teken=()=>{
+    vel(`<div class="vel-kop"><h2>${esc(it.naam)}</h2><button class="sluit" aria-label="Sluiten">${ICO.x}</button></div>
+    <img class="groot" src="${it.foto}" alt="">
+    <h3>Hoe voelt dit stuk?</h3><p class="mut" style="margin-bottom:8px">Meer mag, niks ook.</p>
+    <div class="toggles">${BEHOEFTES.map(([n,t])=>`<button class="toggle" data-t="${n}" aria-pressed="${l.tags.includes(n)}">${t}<i></i></button>`).join("")}</div>
+    <div class="toggles">${["broek","rok"].includes(it.soort)&&!heren()?`<button class="toggle" data-x="hak" aria-pressed="${l.hak}">Alleen met hakken<i></i></button>`:""}</div>
+    ${it.soort!=="schoenen"?`<h3 style="margin-top:12px">Hoe draag je het?</h3><div class="pillen" style="margin-bottom:8px">${DRAGEN.map(([v,t])=>`<button class="pil" data-dragen="${v}" aria-pressed="${l.dragen.includes(v)}">${t}</button>`).join("")}</div>`:""}
+    ${it.soort!=="schoenen"?`<h3 style="margin-top:12px">Wat laat het zien?</h3><div class="pillen" style="margin-bottom:8px">${zones().map(([z,t])=>`<button class="pil" data-z="${z}" aria-pressed="${l.zichtbaar.includes(z)}">${t}</button>`).join("")}</div>`:""}
+    <h3 style="margin-top:12px">Voor welk weer?</h3><div class="pillen" style="margin-bottom:8px">${WEER.map(([w,t])=>`<button class="pil" data-weer="${w}" aria-pressed="${l.weer.includes(w)}">${t}</button>`).join("")}</div>
+    <button class="primair" id="klaar" style="margin-top:12px">Klaar</button>
+    ${zelf?'<button class="link" id="alles">Kleur, soort en meer aanpassen</button>':""}
+    <div id="stukweg"><button class="link" id="verwijder">Verwijder uit mijn kast</button></div>`);
+    document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const n=b.dataset.t,i=l.tags.indexOf(n);i>-1?l.tags.splice(i,1):l.tags.push(n);teken();});
+    document.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{l[b.dataset.x]=!l[b.dataset.x];teken();});
+    document.querySelectorAll("[data-dragen]").forEach(b=>b.onclick=()=>{const v=b.dataset.dragen,i=l.dragen.indexOf(v);i>-1?l.dragen.splice(i,1):l.dragen.push(v);l.accent=it.soort==="hemdje"||l.dragen.includes("onder");teken();});
+    document.querySelectorAll("[data-weer]").forEach(b=>b.onclick=()=>{const w=b.dataset.weer,i=l.weer.indexOf(w);if(i>-1&&l.weer.length>1)l.weer.splice(i,1);else if(i<0)l.weer.push(w);teken();});
+    document.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const z=b.dataset.z,i=l.zichtbaar.indexOf(z);i>-1?l.zichtbaar.splice(i,1):l.zichtbaar.push(z);teken();});
+    if(zelf) $("#alles").onclick=()=>{sluit();labelStap(id);};
+    $("#verwijder").onclick=()=>{$("#stukweg").innerHTML=`<div class="bevestig"><p>${esc(it.naam)} verwijderen? Outfits met dit stuk verliezen deze laag.</p><div><button class="secundair" id="nee">Laat staan</button><button class="primair" id="ja">Verwijder</button></div></div>`;
+      $("#nee").onclick=teken; $("#ja").onclick=()=>{S.wegStuk.push(id);bewaar();sluit();kast();melding("Verwijderd uit je kast",()=>{S.wegStuk=S.wegStuk.filter(x=>x!==id);});};};
+    $("#klaar").onclick=()=>{S.labels[id]=l;bewaar();_ideeCache=null;sluit();kast();};
+  };
+  teken();
+}
+
+/* ================= Welkom, uitleg, privacy, back-up (alleen op de website) ================= */
+const STAPPEN=[
+  ["Zet Ta-daa op je beginscherm","Dan werkt hij als een app, en blijven je gegevens bewaard."],
+  ["Voeg je kleding toe","Eén stuk per foto, liefst op een effen laken of tegen een muur. Meer foto's tegelijk mag."],
+  ["Vertel per stuk wat het is","Wat het is, de kleur, voor welk weer en hoe het voelt. Ta-daa doet alvast een voorstel voor de kleur."],
+  ["Vertel wie je bent","Bij Dit ben ik kies je wat je graag laat zien en welke regels je wilt."],
+  ["Kies elke ochtend","Tik op het weer en waar je zin in hebt. Ta-daa stelt een outfit voor. Niks voor jou? Tik op Andere."],
+  ["Vertel hoe het voelde","Eén tik na het dragen is genoeg. Zo leert Ta-daa wat bij jou past."]];
+const stappenHtml=()=>`<ol class="stappen">${STAPPEN.map(([t,u])=>`<li><b>${t}</b><span>${u}</span></li>`).join("")}</ol>`;
+function welkom(){
+  app.innerHTML=`<div class="midden"><div class="logo">Ta-daa!</div><h1>Elke ochtend een outfit uit je eigen kast</h1>
+    <p class="mut">Zonder account, zonder AI. Alles blijft op je telefoon.</p></div>
+  ${stappenHtml()}
+  <button class="primair" id="begin">Laten we beginnen</button><button class="link" id="scherm">Hoe zet ik Ta-daa op mijn beginscherm?</button>`;
+  $("#begin").onclick=()=>{S.welkom=true;bewaar();tab="kast";kast.w="kast";toon();};
+  $("#scherm").onclick=()=>uitleg("scherm","welkom");
+}
+function uitleg(onderwerp,van="ik"){
+  const terug=`<button class="terug" id="terug">${ICO.terug}${van==="welkom"?"Welkom":"Dit ben ik"}</button>`;
+  const T={
+    werkt:`<h1>Hoe werkt Ta-daa?</h1>${stappenHtml()}<p class="mut">Ta-daa gebruikt geen AI. Alle voorstellen komen uit regels en uit wat jij zelf aangeeft.</p>`,
+    scherm:`<h1>Zet Ta-daa op je beginscherm</h1>
+      <div class="blok"><h2>iPhone (Safari)</h2><ol class="kort"><li>Tik onderin op het deel-icoon: het vierkantje met de pijl omhoog.</li><li>Kies <b>Zet op beginscherm</b>.</li><li>Tik op <b>Voeg toe</b>.</li></ol></div>
+      <div class="blok"><h2>Android (Chrome)</h2><ol class="kort"><li>Tik rechtsboven op de drie puntjes.</li><li>Kies <b>App installeren</b> of <b>Toevoegen aan startscherm</b>.</li><li>Bevestig.</li></ol></div>
+      <p class="mut">Waarom? Zonder beginscherm kan je telefoon de gegevens van een website na een tijdje opruimen, vooral op een iPhone. Op je beginscherm blijft je kast bewaard.</p>`,
+    privacy:`<h1>Privacy</h1><div class="blok"><ul class="kort">
+      <li><b>Alles blijft op jouw telefoon:</b> je foto's, je kleding, je outfits en wat je invult. Er gaat niks naar een server, ook niet naar Denkstroom.</li>
+      <li><b>Geen account, geen wachtwoord.</b> Niemand anders kan je kast zien.</li>
+      <li><b>Geen AI, geen reclame, geen volgers.</b> Ta-daa telt niet mee wie wat doet.</li>
+      <li><b>Foto's zonder locatie.</b> Ta-daa verkleint je foto's en bewaart ze zonder de plek waar ze gemaakt zijn.</li>
+      <li><b>Let op wat er op je foto staat,</b> zoals je gezicht in de spiegel of je huis.</li>
+      <li><b>De website zelf</b> staat bij GitHub. Zoals bij elke website kan GitHub zien dat de pagina wordt geopend, maar niet wat je in Ta-daa doet.</li>
+      <li><b>Nieuwe telefoon?</b> Maak eerst een back-up, anders ben je je kast kwijt.</li>
+      <li><b>Alles wissen?</b> Gebruik "Verwijder al mijn gegevens". Verwijder je Ta-daa of je browsergegevens, dan is alles ook weg.</li></ul></div>`,
+    backup:`<h1>Back-up</h1><div class="blok"><h2>Back-up maken</h2><p class="mut">Je krijgt één bestand met je hele kast, inclusief foto's. Bewaar het op een veilige plek, bijvoorbeeld in je bestanden of in iCloud.</p><button class="primair" id="maak">Maak een back-up</button></div>
+      <div class="blok"><h2>Back-up terugzetten</h2><p class="mut">Dit vervangt wat nu in Ta-daa staat door de kast uit het bestand.</p><input type="file" id="terugbestand" accept=".json,application/json" hidden><button class="secundair" id="kies" style="width:100%">Kies een back-upbestand</button></div>`,
+    wissen:`<h1>Verwijder al mijn gegevens</h1><div class="blok"><p>Hiermee wis je alles: je foto's, je kleding, je outfits en wat je bij Dit ben ik hebt ingevuld. Dit kan niet ongedaan worden. Wil je je kast bewaren? Maak dan eerst een back-up.</p>
+      <div class="bevestig" style="background:var(--bg)"><p>Weet je het zeker?</p><div><button class="secundair" id="nee">Nee, bewaar alles</button><button class="primair gevaar" id="ja">Ja, wis alles</button></div></div></div>`};
+  app.innerHTML=terug+T[onderwerp];
+  $("#terug").onclick=()=>{if(van==="welkom") welkom(); else {tab="ik";toon();}};
+  if(onderwerp==="backup"){ $("#maak").onclick=maakBackup; $("#kies").onclick=()=>$("#terugbestand").click(); $("#terugbestand").onchange=e=>zetTerug(e.target.files[0]); }
+  if(onderwerp==="wissen"){ $("#nee").onclick=()=>{tab="ik";toon();}; $("#ja").onclick=wisAlles; }
+  scrollTo(0,0);
+}
+const naarDataUrl=b=>new Promise(ok=>{const r=new FileReader();r.onload=()=>ok(r.result);r.readAsDataURL(b);});
+async function maakBackup(){
+  melding("Back-up maken…");
+  const fotos={}; for(const a of Object.keys(FOTO_URL)){const b=await idb("readonly",s=>s.get(a.slice(4))); if(b) fotos[a]=await naarDataUrl(b);}
+  const bestand=new Blob([JSON.stringify({app:"ta-daa",versie:1,datum:vandaagDatum(),staat:S,fotos})],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(bestand); a.download=`ta-daa-backup-${vandaagDatum()}.json`;
+  document.body.appendChild(a); a.click(); a.remove(); melding("Back-up gemaakt. Bewaar het bestand goed.");
+}
+async function zetTerug(bestand){
+  if(!bestand) return;
+  try{
+    const d=JSON.parse(await bestand.text()); if(d.app!=="ta-daa"||!d.staat) throw 0;
+    await idb("readwrite",s=>s.clear());
+    for(const [a,url] of Object.entries(d.fotos||{})){const b=await (await fetch(url)).blob(); await idb("readwrite",s=>s.put(b,a.slice(4)));}
+    S={...kopie(LEEG),...d.staat,welkom:true}; bewaar(); location.reload();
+  }catch(e){ melding("Dit bestand is geen Ta-daa-back-up."); }
+}
+async function wisAlles(){
+  try{localStorage.removeItem(LS);localStorage.removeItem("kast-gezien");}catch(e){}
+  try{(await fotoDb()).close();}catch(e){}
+  await new Promise(ok=>{const r=indexedDB.deleteDatabase("tadaa-fotos");r.onsuccess=r.onerror=r.onblocked=()=>ok();});
+  location.reload();
+}
+
+/* ================= 10. Vellen, hulpjes, navigatie ================= */
+const $=s=>document.querySelector(s);
+const app=$("#app");
+const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const foto=id=>K[id]?`<img src="${K[id].foto}" alt="${esc(K[id].naam)}" loading="lazy">`:"";
+const groet=()=>{const u=new Date().getHours();return (u<12?"Goeiemorgen":u<18?"Goeiemiddag":"Goeienavond")+" leukerd!";};
+function labelTekst(ids){const s=new Set(ids.flatMap(tags));return BEHOEFTES.filter(b=>s.has(b[0])).map(b=>b[1].toLowerCase()).join(" · ");}
+const gesorteerd=ids=>[...ids].sort((a,b)=>VOLGORDE.indexOf(LAAG[K[a]?.soort])-VOLGORDE.indexOf(LAAG[K[b]?.soort]));
+function melding(t,ongedaan){ // korte melding onderin, eventueel met 'Ongedaan maken'
+  const m=$("#melding"); m.innerHTML=esc(t)+(ongedaan?'<button id="ongedaan">Ongedaan maken</button>':"");
+  m.hidden=false; clearTimeout(m._t); m._t=setTimeout(()=>m.hidden=true,ongedaan?5000:2400);
+  if(ongedaan) $("#ongedaan").onclick=()=>{ongedaan();bewaar();_ideeCache=null;m.hidden=true;toon(false);};
+}
+function vel(html){$("#vel-plek").innerHTML=`<div class="vel-achter" id="achter"></div><div class="vel" role="dialog" aria-modal="true"><div class="greep"></div>${html}</div>`;document.body.style.overflow="hidden";$("#achter").onclick=sluit;const s=$("#vel-plek .sluit");if(s)s.onclick=sluit;}
+function sluit(){$("#vel-plek").innerHTML="";document.body.style.overflow="";}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")sluit();});
+function opties(laag){ // kledingstukken die op deze laag passen ("TopBasis" = top of jurk)
+  const lagen=laag==="TopBasis"?["Top","Basis"]:[laag];
+  return kastNu().filter(k=>lagen.includes(LAAG[k.soort])&&pastWeer(k));
+}
+function wisselVel(id,klaar){
+  const laag=LAAG[K[id].soort];
+  vel(`<div class="vel-kop"><h2>Wissel ${laag.toLowerCase()}</h2><button class="sluit" aria-label="Sluiten">${ICO.x}</button></div>
+  <div class="kies-rij">${opties(laag).map(k=>`<button data-k="${k.id}" aria-pressed="${k.id===id}"><img src="${k.foto}" alt=""><span>${esc(k.naam)}</span></button>`).join("")}</div>
+  `);
+  document.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{sluit();klaar(b.dataset.k);});
+}
+function kiesVel(laag,klaar){
+  const naam=laag==="TopBasis"?"top of jurk":laag.toLowerCase();
+  vel(`<div class="vel-kop"><h2>Kies ${naam}</h2><button class="sluit" aria-label="Sluiten">${ICO.x}</button></div>
+  <div class="kies-rij">${opties(laag).map(k=>`<button data-k="${k.id}"><img src="${k.foto}" alt=""><span>${esc(k.naam)}</span></button>`).join("")}</div>`);
+  document.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{sluit();klaar(b.dataset.k);});
+}
+function bewaarVel(stukken,schoenen,na){ // combi bewaren: geen extra vragen
+  S.extra.push({nr:nieuwNr(),stukken:[...stukken],schoenen:schoenen||"",tip:"",eigen:true});
+  bewaar();na&&na();melding("Bewaard bij je outfits");tab="outfits";outfits.f="mijn";toon();
+}
+let tab="vandaag";
+const SCHERMEN={vandaag,outfits,kast,ik};
+const markeerMenu=()=>{document.querySelectorAll("nav [data-tab]").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
+  const k=document.querySelector('nav [data-tab="kast"]'); k.classList.toggle("stip",kastCheck().length>0||teLabelen().length>0);};
+function toon(scroll=true){ markeerMenu(); SCHERMEN[tab](); if(scroll) scrollTo(0,0); }
+document.querySelectorAll("nav [data-tab]").forEach(b=>b.onclick=()=>{werk=null;tab=b.dataset.tab;toon();});
+opstarten();
+</script>
+<script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
+
+</body>
+</html>
