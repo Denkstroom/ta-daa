@@ -98,6 +98,10 @@ h3{font-size:15px;margin:0 0 8px;font-weight:700}
 .toggle i::after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:var(--vlak);transition:left .15s}
 .toggle[aria-pressed="true"] i{background:var(--accent)}
 .toggle[aria-pressed="true"] i::after{left:17px}
+button.toggle i,button.regel i{background:transparent;box-shadow:inset 0 0 0 2px var(--inkt)}
+button.toggle i::after,button.regel i::after{background:var(--inkt)}
+button.toggle[aria-pressed="true"] i,button.regel[aria-pressed="true"] i{background:var(--accent);box-shadow:none}
+button.toggle[aria-pressed="true"] i::after,button.regel[aria-pressed="true"] i::after{background:#fff}
 
 /* Vandaag */
 .voorstel{background:var(--vlak);border-radius:24px;padding:10px;margin-bottom:12px;width:100%;text-align:left}
@@ -125,6 +129,8 @@ h3{font-size:15px;margin:0 0 8px;font-weight:700}
 .tour-wolk{position:fixed;left:16px;right:16px;max-width:420px;margin:0 auto;background:var(--vlak);border-radius:24px;padding:18px 18px 14px;box-shadow:0 16px 40px -12px rgba(0,0,0,.6)}
 .tour-wolk h3{font-size:18px;margin:2px 0 4px}.tour-wolk p{margin:0 0 6px}
 .tour-label{font-size:12px;font-weight:600;color:var(--mut);margin:0}
+.tour-kop{display:flex;justify-content:space-between;align-items:center}.tour-kop .link{margin:0;font-size:13px;padding:4px 0}
+.tour-nav .secundair{width:auto;padding:11px 18px}
 #tour button:focus{outline:none}#tour button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .tour-nav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}.tour-nav .primair{width:auto;padding:11px 18px}.tour-nav .link{margin:0}
 @media (prefers-reduced-motion:reduce){.tour-gat{transition:none}}
@@ -477,7 +483,6 @@ function ideeen(vast){
     const k=[...ids].sort().join("+"); if(al.has(k)||S.wegIdee.includes(k)) return; al.add(k);
     const fel=new Set(ids.map(kleur).filter(c=>FEL.has(c))).size;
     const sch=schoenVoor(ids);
-    if(P().comfort.geenHakken&&sch&&labels(sch).hak) bonus-=1;
     kandidaten.push({nr:"i"+k,sleutel:k,stukken:sch?[...ids,sch]:ids,status:"idee",idee:true,
       schoenen:ids.some(metPanty)?"Met panty":"",s:fel+bonus+voorkeur(ids)+dagzaad(k)*0.8});
   };
@@ -567,8 +572,6 @@ function ik(){
     <div class="pillen">${Object.entries(KLEURTYPES).map(([k,v])=>`<button class="pil" data-kt="${k}" aria-pressed="${p.kleurtype===k}">${v[0]}</button>`).join("")}</div></div>
   ${suggesties().slice(0,1).map(x=>`<div class="blok" style="border:1.5px solid var(--accent)"><h2>De kast merkte iets op</h2><p class="mut">Je haalde ${x.n} keer ${x.paar[0]} met ${x.paar[1]} weg. Wil je die nooit meer samen zien?</p>
     <div class="knoppen" style="margin:0"><button class="secundair" data-sug-nee="${x.paar.join("+")}">Nee</button><button class="primair" data-sug-ja="${x.paar.join("+")}">Ja, nooit samen</button></div></div>`).join("")}
-  <div class="blok"><h2>Comfort</h2>
-    ${heren()?'<p class="mut" style="margin:0">Of iets comfortabel is, geef je per kledingstuk aan bij Kast.</p>':`<button class="regel" data-comfort="geenHakken" aria-pressed="${p.comfort.geenHakken}"><span>Liever geen hakken</span><i></i></button><p class="mut" style="margin:6px 0 0">Of iets comfortabel is, geef je per kledingstuk aan bij Kast.</p>`}</div>
   ${(TYPEREGELS[p.kleurtype]||[]).length?`<div class="blok"><h2>Regels bij ${kt[0].toLowerCase()}</h2><p class="mut">Deze horen bij je kleurtype en komen er vanzelf bij.</p>
     ${TYPEREGELS[p.kleurtype].map(r=>`<button class="regel" data-regel="${r.id}" aria-pressed="${regelAan(r.id)}"><span>${r.tekst}</span><i></i></button>`).join("")}</div>`:""}
   ${["Kleur","Combineren","Voorkeur"].map(g=>`<div class="blok"><h2>Regels: ${g.toLowerCase()}</h2>${g==="Voorkeur"?'<p class="mut">Deze verbieden niks, ze zetten een outfit hoger of lager.</p>':""}
@@ -585,7 +588,6 @@ function ik(){
   app.querySelectorAll("[data-afd]").forEach(b=>b.onclick=()=>zet(p=>p.afdeling=b.dataset.afd));
   app.querySelectorAll("[data-zone]").forEach(b=>b.onclick=()=>zet(p=>{const z=b.dataset.zone;p.zones[z]=STANDEN[(STANDEN.indexOf(mag(z))+1)%3];}));
   app.querySelectorAll("[data-kt]").forEach(b=>b.onclick=()=>zet(p=>p.kleurtype=b.dataset.kt));
-  app.querySelectorAll("[data-comfort]").forEach(b=>b.onclick=()=>zet(p=>p.comfort[b.dataset.comfort]=!p.comfort[b.dataset.comfort]));
   app.querySelectorAll("[data-regel]").forEach(b=>b.onclick=()=>zet(p=>{const id=b.dataset.regel,i=p.regelsUit.indexOf(id);i>-1?p.regelsUit.splice(i,1):p.regelsUit.push(id);}));
   app.querySelectorAll("[data-sug-ja]").forEach(b=>b.onclick=()=>{const [x,y]=b.dataset.sugJa.split("+");zet(p=>p.nooit.push({a:"k:"+x,b:["k:"+y]}));melding("Toegevoegd aan je eigen regels");});
   app.querySelectorAll("[data-sug-nee]").forEach(b=>b.onclick=()=>zet(p=>{p.genegeerd=[...(p.genegeerd||[]),b.dataset.sugNee];}));
@@ -987,11 +989,12 @@ function beginscherm(){
   $("#browser").onclick=()=>{try{localStorage.setItem("tadaa-browser","1");}catch(e){} toon();};
   scrollTo(0,0);
 }
-const TOUR=[ // wijst op de schermen zelf aan wat je doet
+const TOUR=[ // volgt de menubalk: eerst je kast vullen, dan de rest
   {tab:"kast",doel:"#plus",kop:"Voeg je kleding toe",tekst:"Maak een foto van één kledingstuk, het liefst op een effen ondergrond. Of maak screenshots van je online aankopen."},
-  {tab:"kast",doel:".seg",kop:"Je kleding komt hier te staan",tekst:"Blader door je kledingstukken en voeg wat informatie toe, zodat Ta‑daa zo goed mogelijk voor je werkt."},
-  {tab:"vandaag",doel:".wissels",kop:"Laat je verrassen",tekst:"Tik op het weer en waar je zin in hebt, Ta‑daa stelt een outfit voor."},
-  {tab:"outfits",doel:'nav [data-tab="outfits"]',kop:"Optioneel: vertel hoe het voelde",tekst:"Na het dragen vraagt Ta‑daa hoe je outfit voelde, om beter op je wensen af te stemmen. Al je outfits staan hier."}];
+  {tab:"kast",doel:'nav [data-tab="kast"]',kop:"Na het toevoegen komt je kleding hier",tekst:"Blader door je kast en vertel per stuk wat het is. Hoe meer je invult, hoe beter Ta‑daa voor je werkt."},
+  {tab:"vandaag",doel:'nav [data-tab="vandaag"]',kop:"Laat je verrassen",tekst:"Kies hier het weer en waar je zin in hebt. Ta‑daa stelt dan een outfit voor."},
+  {tab:"outfits",doel:'nav [data-tab="outfits"]',kop:"Optioneel: vertel hoe het voelde",tekst:"Na het dragen vraagt Ta‑daa hoe je outfit voelde. Zo leert de app wat bij je past. Al je outfits staan hier."},
+  {tab:"ik",doel:'nav [data-tab="ik"]',kop:"Hier pas je alles aan",tekst:"Je antwoorden van daarnet, je kleurtype en je eigen regels. Ook je back-up vind je hier."}];
 let TS=-1;
 function startTour(){ TS=0; tekenTour(); }
 function tourVolgende(klaar){
@@ -1007,8 +1010,8 @@ function tekenTour(){
   box.innerHTML=`<div class="tour-gat" style="top:${r.top-pad}px;left:${r.left-pad}px;width:${r.width+2*pad}px;height:${r.height+2*pad}px;border-radius:${rond+pad}px"></div>
     <svg class="tour-pijl" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"></svg>
     <div class="tour-wolk" role="dialog" aria-modal="true" aria-label="${esc(st.kop)}">
-      <p class="tour-label">Uitleg ${TS+1} van ${TOUR.length}</p><h3>${esc(st.kop)}</h3><p>${esc(st.tekst)}</p>
-      <div class="tour-nav">${laatste?"<span></span>":'<button class="link" id="tour-over">Overslaan</button>'}<button class="primair" id="tour-verder">${laatste?"Aan de slag!":"Volgende"}</button></div></div>`;
+      <div class="tour-kop"><p class="tour-label">Uitleg ${TS+1} van ${TOUR.length}</p>${laatste?"":'<button class="link" id="tour-over">Overslaan</button>'}</div><h3>${esc(st.kop)}</h3><p>${esc(st.tekst)}</p>
+      <div class="tour-nav">${TS?'<button class="secundair" id="tour-terug">Vorige</button>':"<span></span>"}<button class="primair" id="tour-verder">${laatste?"Aan de slag!":"Volgende"}</button></div></div>`;
   // wolkje onder het doel als het past, anders erboven; ertussen ruimte voor de pijl
   const w=box.querySelector(".tour-wolk"), h=w.offsetHeight, gat=40, boven=r.top-pad, onder=r.bottom+pad;
   const kant=onder+gat+h<=H-12?"onder":"boven";
@@ -1018,6 +1021,7 @@ function tekenTour(){
   box.querySelector(".tour-pijl").innerHTML=`<path d="M${cx},${sy} L${cx},${ey}"/><path d="M${cx-k},${ey-r1*k} L${cx},${ey} L${cx+k},${ey-r1*k}"/>`;
   $("#tour-verder").onclick=()=>tourVolgende(laatste);
   if($("#tour-over")) $("#tour-over").onclick=()=>tourVolgende(true);
+  if($("#tour-terug")) $("#tour-terug").onclick=()=>{TS--;tekenTour();};
 }
 addEventListener("resize",()=>{if(TS>=0) tekenTour();});
 const STAPPEN=[
@@ -1027,9 +1031,9 @@ const STAPPEN=[
   ["Laat je verrassen","Tik op het weer en waar je zin in hebt, Ta‑daa stelt een outfit voor."],
   ["Vertel hoe het voelde","Eén tik na het dragen is genoeg. Zo leert Ta-daa wat bij jou past."]];
 const stappenHtml=()=>`<ol class="stappen genummerd">${STAPPEN.map(([t,u])=>`<li><b>${t}</b><span>${u}</span></li>`).join("")}</ol>`;
-const VRAGEN=["kleding","zien","kleurtype","hakken"];
+const VRAGEN=["kleding","zien","kleurtype"];
 function instellen(i=0){
-  const p=P(), vragen=VRAGEN.filter(v=>!(v==="hakken"&&heren())), v=vragen[i], laatste=i===vragen.length-1;
+  const p=P(), vragen=VRAGEN, v=vragen[i], laatste=i===vragen.length-1;
   const mag=z=>p.zones[z]||"mm";
   const inhoud={
     kleding:`<h1>Welke kleding draag je?</h1><p class="mut">Zo weet Ta‑daa welke soorten kleding en welke woorden bij jou passen.</p>
@@ -1038,9 +1042,7 @@ function instellen(i=0){
       <div class="pop">${POP}${zones().map(([z,t])=>`<button class="zone" data-zone="${z}" data-stand="${mag(z)}" style="left:${ZONEPLEK[z][0]}px;top:${ZONEPLEK[z][1]}px">${t}</button>`).join("")}</div>
       <div class="legenda"><span><i style="background:var(--accent)"></i>laat ik graag zien</span><span><i style="background:var(--vlak);border:1.5px solid var(--lijn)"></i>maakt niet uit</span><span><i style="border:1.5px dashed var(--mut)"></i>liever bedekt</span></div>`,
     kleurtype:`<h1>Weet je je kleurtype?</h1><p class="mut">Dan kiest Ta-daa kleuren die je goed staan. Weet je het niet? Geen probleem.</p>
-      <div class="keuzelijst">${Object.entries(KLEURTYPES).map(([k,w])=>`<button class="secundair" data-kt="${k}" aria-pressed="${p.kleurtype===k}">${w[0]}${k!=="onbekend"?`<small>${w[1]}</small>`:""}</button>`).join("")}</div>`,
-    hakken:`<h1>Draag je graag hakken?</h1><p class="mut">Zo weet Ta‑daa of outfits met hakken vaak langs mogen komen.</p>
-      <div class="keuzelijst"><button class="secundair" data-hak="0" aria-pressed="${!p.comfort.geenHakken}">Ja, prima</button><button class="secundair" data-hak="1" aria-pressed="${!!p.comfort.geenHakken}">Liever niet</button></div>`};
+      <div class="keuzelijst">${Object.entries(KLEURTYPES).map(([k,w])=>`<button class="secundair" data-kt="${k}" aria-pressed="${p.kleurtype===k}">${w[0]}${k!=="onbekend"?`<small>${w[1]}</small>`:""}</button>`).join("")}</div>`};
   app.innerHTML=`<div class="instellen"><p class="tour-label">Vraag ${i+1} van ${vragen.length}</p>${inhoud[v]}
     <div class="tour-nav instellen-nav">${i?'<button class="link" id="vorige">Vorige</button>':'<button class="link" id="slaover">Sla over</button>'}<button class="primair" id="verder">${laatste?"Klaar":"Volgende"}</button></div>
     <p class="mut" style="text-align:center;margin-top:10px;font-size:13px">Je kunt dit later altijd aanpassen bij Dit ben ik.</p></div>`;
@@ -1048,7 +1050,6 @@ function instellen(i=0){
   app.querySelectorAll("[data-afd]").forEach(b=>b.onclick=()=>zet(p=>p.afdeling=b.dataset.afd));
   app.querySelectorAll("[data-zone]").forEach(b=>b.onclick=()=>zet(p=>{const z=b.dataset.zone;p.zones[z]=STANDEN[(STANDEN.indexOf(mag(z))+1)%3];}));
   app.querySelectorAll("[data-kt]").forEach(b=>b.onclick=()=>zet(p=>p.kleurtype=b.dataset.kt));
-  app.querySelectorAll("[data-hak]").forEach(b=>b.onclick=()=>zet(p=>p.comfort.geenHakken=b.dataset.hak==="1"));
   const klaar=()=>{S.profiel=p;S.ingesteld=true;bewaar();toon();};
   $("#verder").onclick=()=>laatste?klaar():instellen(i+1);
   if($("#vorige")) $("#vorige").onclick=()=>instellen(i-1);
