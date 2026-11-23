@@ -33,17 +33,21 @@
 <style>
 /* Rustige app: gebroken wit, inkt, één petrol-accent. De kleur komt uit de kleding. */
 :root{
-  --bg:#f7f4ee; --vlak:#ffffff; --foto:#f1eee8; --inkt:#1f2d33; --mut:#6f7c80; --lijn:#e4dfd6;
-  --accent:#0f5c63; --accent-zacht:#dcebeb; --op-accent:#ffffff; --pop:#d9d4cb; --tafel:#e9e1d3; --polaroid:#fffdf8;
+  /* Ta-daa! in petrol & mint: ronde vormen, een zachte gloed en sterretjes */
+  --bg:#f3f7f4; --vlak:#ffffff; --foto:#eef2ef; --inkt:#1d2b2c; --mut:#667774; --lijn:#dde7e3;
+  --accent:#0f5c63; --accent-zacht:#dcefe8; --op-accent:#ffffff; --pop:#cfdcd7; --tafel:#ffffff; --polaroid:#fbf8f1;
+  --gloed1:rgba(95,211,180,.38); --gloed2:rgba(15,92,99,.16); --gloed3:rgba(255,179,92,.22); --ster1:#ff9f52; --ster2:#3cae8c;
   --tekst:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
 /* Donker: neutraal grafiet met hetzelfde petrol-accent als licht, zodat de kleding de rest van de kleur geeft. */
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#121416; --vlak:#1c1f22; --foto:#e6e3de; --inkt:#ecebe8; --mut:#8f969b; --lijn:#2c3034;
-  --accent:#5fb3ba; --accent-zacht:#1d3538; --op-accent:#0e1a1c; --pop:#3a3f44; --tafel:#2a2e31; --polaroid:#f3efe6; color-scheme:dark}}
+  --bg:#0e1b1d; --vlak:#172a2c; --foto:#e6e3de; --inkt:#eef5f2; --mut:#9db5b0; --lijn:#24393b;
+  --accent:#5fd3b4; --accent-zacht:#1a3a37; --op-accent:#0b2326; --pop:#2a4245; --tafel:#172a2c; --polaroid:#f6f2ea;
+  --gloed1:rgba(95,211,180,.42); --gloed2:rgba(15,92,99,.6); --gloed3:rgba(255,179,92,.22); --ster1:#ffb35c; --ster2:#fff1c9; color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#121416; --vlak:#1c1f22; --foto:#e6e3de; --inkt:#ecebe8; --mut:#8f969b; --lijn:#2c3034;
-  --accent:#5fb3ba; --accent-zacht:#1d3538; --op-accent:#0e1a1c; --pop:#3a3f44; --tafel:#2a2e31; --polaroid:#f3efe6; color-scheme:dark}
+  --bg:#0e1b1d; --vlak:#172a2c; --foto:#e6e3de; --inkt:#eef5f2; --mut:#9db5b0; --lijn:#24393b;
+  --accent:#5fd3b4; --accent-zacht:#1a3a37; --op-accent:#0b2326; --pop:#2a4245; --tafel:#172a2c; --polaroid:#f6f2ea;
+  --gloed1:rgba(95,211,180,.42); --gloed2:rgba(15,92,99,.6); --gloed3:rgba(255,179,92,.22); --ster1:#ffb35c; --ster2:#fff1c9; color-scheme:dark}
 
 /* basis */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -68,7 +72,7 @@ h3{font-size:15px;margin:0 0 8px;font-weight:700}
 .kop h1{margin:0}
 
 /* knoppen en keuzes */
-.primair{display:block;width:100%;background:var(--accent);color:var(--op-accent);font-weight:700;border-radius:16px;padding:14px;text-align:center}
+.primair{display:block;width:100%;background:var(--accent);color:var(--op-accent);font-weight:700;border-radius:99px;padding:15px;text-align:center}
 .primair:disabled{opacity:.45}
 .primair.gedaan{background:var(--accent-zacht);color:var(--inkt)}
 .secundair{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--vlak);border:1.5px solid var(--lijn);font-weight:700;border-radius:16px;padding:12px 16px}
@@ -117,10 +121,15 @@ h3{font-size:15px;margin:0 0 8px;font-weight:700}
 .kort{margin:0;padding-left:20px;font-size:15px}.kort li{margin-bottom:8px}
 .primair.gevaar{background:#a33a2c;color:#fff}
 .wissels{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:4px 0 14px}
-.wisselknop{background:var(--vlak);border:1.5px solid var(--lijn);border-radius:16px;padding:8px 10px;display:flex;flex-direction:column;align-items:center}
+.wisselknop{background:var(--vlak);border:1.5px solid var(--lijn);border-radius:22px;padding:8px 10px;display:flex;flex-direction:column;align-items:center}
 .wisselknop small{font-size:11.5px;color:var(--mut);font-weight:600}
 .wisselknop b{font-size:17px}
-.tafel{position:relative;display:block;width:100%;height:min(48vh,410px);border-radius:24px;background:var(--tafel);margin-bottom:12px;overflow:hidden}
+.tafel{position:relative;display:block;width:100%;height:min(48vh,410px);border-radius:28px;background:var(--tafel);margin-bottom:12px;overflow:hidden;isolation:isolate}
+.tafel::before{content:"";position:absolute;inset:-20%;z-index:-1;filter:blur(12px);
+  background:radial-gradient(circle at 28% 28%,var(--gloed1),transparent 46%),radial-gradient(circle at 76% 46%,var(--gloed2),transparent 46%),radial-gradient(circle at 45% 82%,var(--gloed3),transparent 46%)}
+.ster{position:absolute;z-index:9;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);pointer-events:none}
+@media (prefers-reduced-motion:no-preference){.ster{animation:twinkel 2.6s ease-in-out infinite}.ster:nth-of-type(2n){animation-delay:-1.3s}
+  @keyframes twinkel{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.6);opacity:.55}}}
 .pol{position:absolute;width:44%;background:var(--polaroid);padding:6px 6px 16px;border-radius:3px;box-shadow:0 10px 18px -10px rgba(0,0,0,.55)}
 .pol img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--foto)}
 .pol i{position:absolute;left:8px;bottom:4px;font-style:normal;font-size:11px;font-weight:700;color:#59646a}
@@ -613,7 +622,8 @@ const POLAROID_PLEK={1:[[50,50,-2]],2:[[31,44,-5],[69,56,4]],3:[[28,30,-6],[72,3
 function polaroids(ids){ // de outfit als polaroids op een tafel; gewone foto's zien er zo toch netjes uit
   const st=gesorteerd(ids).filter(id=>K[id]).slice(0,5), plek=POLAROID_PLEK[st.length]||POLAROID_PLEK[5];
   const breedte={1:58,2:46,3:40,4:36,5:33}[st.length]||33;   // hoe meer lagen, hoe kleiner de polaroids
-  return st.map((id,i)=>{const [x,y,r]=plek[i];return `<span class="pol" style="width:${breedte}%;left:${x}%;top:${y}%;transform:translate(-50%,-50%) rotate(${r}deg);z-index:${i+1}"><img src="${K[id].foto}" alt="${esc(K[id].naam)}"></span>`;}).join("");
+  const sterren=[[9,9,16,1],[90,14,11,2],[88,88,15,1],[8,82,9,2],[55,5,8,1]].map(([x,y,s,c])=>`<span class="ster" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;background:var(--ster${c})"></span>`).join("");
+  return sterren+st.map((id,i)=>{const [x,y,r]=plek[i];return `<span class="pol" style="width:${breedte}%;left:${x}%;top:${y}%;transform:translate(-50%,-50%) rotate(${r}deg);z-index:${i+1}"><img src="${K[id].foto}" alt="${esc(K[id].naam)}"></span>`;}).join("");
 }
 function trekAan(nr){andereTeller=0;nr=bewaarIdee(nr);S.gedragen.push({nr,datum:vandaagDatum()});bewaar();melding("Veel plezier! Vanavond vraag ik hoe het voelde.");}
 
