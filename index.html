@@ -215,8 +215,10 @@ input[type=range]{width:100%;margin:8px 0 0;accent-color:var(--accent);height:28
 
 /* Kast en labelen */
 .raster{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.stuk{background:var(--vlak);border-radius:16px;padding:5px;text-align:left}
-.stuk img{width:100%;aspect-ratio:4/5;object-fit:cover;background:var(--foto);border-radius:2px;display:block;border:5px solid var(--polaroid);border-bottom-width:5px;box-shadow:0 4px 8px -5px rgba(0,0,0,.45)}
+.raster:has(.stuk){gap:5px}
+.stuk{position:relative;padding:0;border-radius:14px;overflow:hidden;background:var(--foto)}
+.stuk img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.stuk .stip{position:absolute;left:7px;bottom:7px;width:15px;height:15px;border-radius:50%;background:var(--k);box-shadow:0 0 0 2px #fff,0 1px 4px rgba(0,0,0,.4)}
 .stuk span{display:block;font-size:12px;line-height:1.2;margin:5px 2px 2px;min-height:2.4em}
 .stuk small{display:block;font-size:11px;color:var(--mut);margin:0 2px 2px;min-height:1.3em}
 .groot{width:100%;max-height:38vh;object-fit:contain;background:var(--foto);border-radius:18px;display:block;margin-bottom:12px}
@@ -399,6 +401,9 @@ const kleur=id=>K[id]?.kleuren?.[0];
 const isPatroon=id=>!!K[id]?.patroon;
 const metPanty=id=>["rok","jurk"].includes(K[id]?.soort);
 const actief=id=>K[id]&&!S.wegStuk.includes(id);
+// kast als kleurwaaier: licht → warm → koel → groen → aardetinten → donker
+const WAAIER=["wit","ecru","geel","limoen","oranje","rood","lichtroze","roze","fuchsia","bordeaux","aubergine","lila","paars","lichtblauw","blauw","kobalt","denim","donkerblauw","turquoise","petrol","zeegroen","smaragd","salie","olijf","donkergroen","taupe","bruin","grijs","zwart"];
+const opKleur=l=>[...l].sort((a,b)=>{const i=k=>{const x=WAAIER.indexOf(k.kleuren?.[0]);return x<0?99:x;};return i(a)-i(b)||(a.soort>b.soort?1:a.soort<b.soort?-1:0);});
 const kastNu=()=>KAST.filter(k=>actief(k.id)&&past(k));
 function past(k){ // wat hoort bij je afdeling (herenkleding: geen rokken, jurken of hakken)
   if(!heren()) return true;
@@ -795,10 +800,10 @@ function kast(){
   <input type="file" id="bestand" accept="image/*" multiple hidden>
   <div class="seg" role="tablist"><button role="tab" data-w="kast" aria-selected="${w==="kast"}">In mijn kast</button><button role="tab" data-w="labelen" aria-selected="${w==="labelen"}">Nog labelen${open.length?` <b>${open.length}</b>`:""}</button></div>
   ${w==="kast"?`<div class="filters">${groepen.map(([k,t])=>`<button class="pil" data-g="${k}" aria-pressed="${g===k}">${t}</button>`).join("")}</div>
-    <div class="raster">${kastNu().filter(k=>g==="alles"||LAAG[k.soort]===g).map(k=>`<button class="stuk" data-k="${k.id}"><img src="${k.foto}" alt="" loading="lazy"><span>${esc(k.naam)}</span><small>${labelTekst([k.id])||(labels(k.id).accent?"accent":"")}</small></button>`).join("")}</div>`
+    <div class="raster">${opKleur(kastNu().filter(k=>g==="alles"||LAAG[k.soort]===g)).map(k=>`<button class="stuk" data-k="${k.id}" aria-label="${esc(k.naam)}"><img src="${k.foto}" alt="" loading="lazy">${k.kleuren?.[0]?`<i class="stip" style="--k:${(PALET.find(p=>p[0]===k.kleuren[0])||[0,"#888"])[1]}"></i>`:""}</button>`).join("")}</div>`
   :open.length?`<p class="mut" style="margin-bottom:10px">Loop ze één voor één door en geef ze de juiste info. Daarna staan ze in je kast.</p>
     <button class="primair" id="start" style="margin-bottom:12px">Begin met labelen</button>
-    <div class="raster">${open.map(n=>`<button class="stuk" data-n="${n.id}"><img src="${fotoSrc(n.asset)}" alt=""><span>Nog labelen</span></button>`).join("")}</div>`
+    <div class="raster">${open.map(n=>`<button class="stuk" data-n="${n.id}" aria-label="Nog labelen"><img src="${fotoSrc(n.asset)}" alt=""></button>`).join("")}</div>`
   :`<div class="leeg-staat">Niks te labelen. Tik op Kleding toevoegen. Meer foto's tegelijk mag.</div>`}
   ${!(S.nieuw||[]).length&&!KAST_BASIS.length?TIP_ONLINE:""}`;
   app.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{kast.w=b.dataset.w;kast();});
