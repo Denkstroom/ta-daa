@@ -108,6 +108,12 @@ h3{font-size:15px;margin:0 0 8px;font-weight:700}
 .wat{font-size:17px;margin:6px 0 8px}
 .app-icoon{width:84px;height:84px;border-radius:20px;margin:16px auto 10px;display:block;box-shadow:0 8px 20px -8px rgba(0,0,0,.4)}
 .welkom-kop{color:var(--accent);font-size:26px}
+.instellen{padding-top:8px}
+.keuzelijst{display:grid;gap:8px;margin:16px 0}
+.keuzelijst .secundair{justify-content:flex-start;flex-direction:column;align-items:flex-start;text-align:left;border-radius:20px;padding:14px 16px;font-size:16px}
+.keuzelijst .secundair small{font-weight:400;color:var(--mut);font-size:13px}
+.keuzelijst .secundair[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-zacht)}
+.instellen-nav{margin-top:18px}
 .gate{list-style:none;margin:16px 0;padding:0;display:flex;flex-direction:column;gap:10px}
 .gate-stap{display:flex;gap:12px;align-items:center;background:var(--vlak);border-radius:20px;padding:10px 14px;font-size:15.5px}
 .gate-nr{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--op-accent);display:grid;place-items:center;font-weight:700;font-size:14px}
@@ -597,6 +603,7 @@ const ZIN=[["alles","Alles"],...BEHOEFTES];
 function zinNu(){return Object.keys(behoefte).find(k=>behoefte[k])||"alles";}
 function vandaag(){
   if(moetEerstBeginscherm()) return beginscherm();
+  if(SITE&&!S.ingesteld&&!S.welkom&&TS<0) return instellen();
   if(SITE&&!S.welkom&&TS<0) return welkom();
   const open=S.gedragen.filter(g=>!g.klaar).slice(-1)[0];
   const tijdVoorVraag=open&&(open.datum<vandaagDatum()||new Date().getHours()>=17);   // pas 's avonds of de volgende dag
@@ -612,7 +619,7 @@ function vandaag(){
   ${politie?`<div class="politie" role="status"><b>Modepolitie</b>${MODEPOLITIE[politie]}</div>`:""}
   ${o?`<button class="tafel" id="open" aria-label="Bekijk deze outfit laag voor laag">${polaroids(o.stukken)}</button>
     <div class="knoppen"><button class="secundair rond" id="andere" aria-label="Laat een andere outfit zien">${ICO.wissel}</button><button class="primair" id="aan">Trek ik aan</button></div>`
-  :kleding<2?`<div class="leeg-staat"><b>Je kast is nog leeg</b><br>Voeg eerst wat kleding toe. Dan gaat Ta-daa voor je combineren.</div><button class="primair" id="naarkast" style="margin-top:10px">Kleding toevoegen</button>${TIP_ONLINE}`
+  :kleding<2?`<div class="leeg-staat"><b>Je kast is nog leeg</b><br>Voeg eerst wat kleding toe. Dan gaat Ta-daa voor je combineren.</div><button class="primair" id="naarkast" style="margin-top:10px">Kleding toevoegen</button>`
   :`<div class="leeg-staat">Geen outfits voor ${weerNaam.toLowerCase()} weer${zinNu()!=="alles"?" die "+zinNaam.toLowerCase()+" zijn":""}. Tik op het weer of op "Zin in" om te wisselen.</div>`}`;
   if(o){
     $("#andere").onclick=()=>{overgeslagen(o.nr);plek++;andereTeller++;vandaag();};
@@ -981,11 +988,10 @@ function beginscherm(){
   scrollTo(0,0);
 }
 const TOUR=[ // wijst op de schermen zelf aan wat je doet
-  {tab:"kast",doel:"#plus",kop:"Voeg je kleding toe",tekst:"Eén stuk per foto, liefst op een effen laken of tegen een muur. Meer foto's tegelijk mag."},
-  {tab:"kast",doel:'[data-w="labelen"]',kop:"Vertel per stuk wat het is",tekst:"Je nieuwe foto's komen hier. Tik ze één voor één aan: wat het is, de kleur, voor welk weer en hoe het voelt."},
-  {tab:"ik",doel:'nav [data-tab="ik"]',kop:"Vertel wie je bent",tekst:"Kies wat je graag laat zien en welke regels je wilt. Ta-daa houdt er rekening mee."},
-  {tab:"vandaag",doel:".wissels",kop:"Laat je verrassen",tekst:"Tik op het weer en waar je zin in hebt, Ta-daa stelt een outfit voor."},
-  {tab:"outfits",doel:'nav [data-tab="outfits"]',kop:"Vertel hoe het voelde",tekst:"Na het dragen vraagt Ta-daa hoe het voelde. Eén tik is genoeg. Je outfits en favorieten staan hier."}];
+  {tab:"kast",doel:"#plus",kop:"Voeg je kleding toe",tekst:"Maak een foto van één kledingstuk, het liefst op een effen ondergrond. Of maak screenshots van je online aankopen."},
+  {tab:"kast",doel:".seg",kop:"Je kleding komt hier te staan",tekst:"Blader door je kledingstukken en voeg wat informatie toe, zodat Ta‑daa zo goed mogelijk voor je werkt."},
+  {tab:"vandaag",doel:".wissels",kop:"Laat je verrassen",tekst:"Tik op het weer en waar je zin in hebt, Ta‑daa stelt een outfit voor."},
+  {tab:"outfits",doel:'nav [data-tab="outfits"]',kop:"Optioneel: vertel hoe het voelde",tekst:"Na het dragen vraagt Ta‑daa hoe je outfit voelde, om beter op je wensen af te stemmen. Al je outfits staan hier."}];
 let TS=-1;
 function startTour(){ TS=0; tekenTour(); }
 function tourVolgende(klaar){
@@ -1004,13 +1010,12 @@ function tekenTour(){
       <p class="tour-label">Uitleg ${TS+1} van ${TOUR.length}</p><h3>${esc(st.kop)}</h3><p>${esc(st.tekst)}</p>
       <div class="tour-nav">${laatste?"<span></span>":'<button class="link" id="tour-over">Overslaan</button>'}<button class="primair" id="tour-verder">${laatste?"Aan de slag!":"Volgende"}</button></div></div>`;
   // wolkje onder het doel als het past, anders erboven; ertussen ruimte voor de pijl
-  const w=box.querySelector(".tour-wolk"), h=w.offsetHeight, gat=52, boven=r.top-pad, onder=r.bottom+pad;
+  const w=box.querySelector(".tour-wolk"), h=w.offsetHeight, gat=40, boven=r.top-pad, onder=r.bottom+pad;
   const kant=onder+gat+h<=H-12?"onder":"boven";
   w.style.top=(kant==="onder"?onder+gat:Math.max(12,boven-gat-h))+"px";
   const wr=w.getBoundingClientRect(), cx=Math.min(Math.max(r.left+r.width/2,28),W-28);
-  const sx=Math.min(Math.max(cx-40,wr.left+40),wr.right-40), sy=kant==="onder"?wr.top-4:wr.bottom+4, ey=kant==="onder"?onder+6:boven-6;
-  const k=10, hoek=Math.atan2(ey-sy,cx-sx), kop=a=>`${cx-k*Math.cos(hoek+a)},${ey-k*Math.sin(hoek+a)}`;
-  box.querySelector(".tour-pijl").innerHTML=`<path d="M${sx},${sy} Q${sx},${ey} ${cx},${ey}"/><path d="M${kop(.5)} L${cx},${ey} L${kop(-.5)}"/>`;
+  const sy=kant==="onder"?wr.top-6:wr.bottom+6, ey=kant==="onder"?onder+6:boven-6, k=9, r1=kant==="onder"?-1:1;
+  box.querySelector(".tour-pijl").innerHTML=`<path d="M${cx},${sy} L${cx},${ey}"/><path d="M${cx-k},${ey-r1*k} L${cx},${ey} L${cx+k},${ey-r1*k}"/>`;
   $("#tour-verder").onclick=()=>tourVolgende(laatste);
   if($("#tour-over")) $("#tour-over").onclick=()=>tourVolgende(true);
 }
@@ -1019,9 +1024,37 @@ const STAPPEN=[
   ["Voeg je kleding toe","Eén stuk per foto, liefst op een effen laken of tegen een muur. Meer foto's tegelijk mag."],
   ["Vertel per stuk wat het is","Wat het is, de kleur, voor welk weer en hoe het voelt. Ta-daa doet alvast een voorstel voor de kleur."],
   ["Vertel wie je bent","Bij Dit ben ik kies je wat je graag laat zien en welke regels je wilt."],
-  ["Laat je verrassen","Tik op het weer en waar je zin in hebt, Ta-daa stelt een outfit voor."],
+  ["Laat je verrassen","Tik op het weer en waar je zin in hebt, Ta‑daa stelt een outfit voor."],
   ["Vertel hoe het voelde","Eén tik na het dragen is genoeg. Zo leert Ta-daa wat bij jou past."]];
 const stappenHtml=()=>`<ol class="stappen genummerd">${STAPPEN.map(([t,u])=>`<li><b>${t}</b><span>${u}</span></li>`).join("")}</ol>`;
+const VRAGEN=["kleding","zien","kleurtype","hakken"];
+function instellen(i=0){
+  const p=P(), vragen=VRAGEN.filter(v=>!(v==="hakken"&&heren())), v=vragen[i], laatste=i===vragen.length-1;
+  const mag=z=>p.zones[z]||"mm";
+  const inhoud={
+    kleding:`<h1>Welke kleding draag je?</h1><p class="mut">Zo weet Ta‑daa welke soorten kleding en welke woorden bij jou passen.</p>
+      <div class="keuzelijst">${[["dames","Dameskleding"],["heren","Herenkleding"],["allebei","Allebei"]].map(([k,t])=>`<button class="secundair" data-afd="${k}" aria-pressed="${p.afdeling===k}">${t}</button>`).join("")}</div>`,
+    zien:`<h1>Wat laat je graag zien?</h1><p class="mut">Tik een plek om te wisselen. Er is geen goed of fout: het gaat erom waar jij je fijn in voelt.</p>
+      <div class="pop">${POP}${zones().map(([z,t])=>`<button class="zone" data-zone="${z}" data-stand="${mag(z)}" style="left:${ZONEPLEK[z][0]}px;top:${ZONEPLEK[z][1]}px">${t}</button>`).join("")}</div>
+      <div class="legenda"><span><i style="background:var(--accent)"></i>laat ik graag zien</span><span><i style="background:var(--vlak);border:1.5px solid var(--lijn)"></i>maakt niet uit</span><span><i style="border:1.5px dashed var(--mut)"></i>liever bedekt</span></div>`,
+    kleurtype:`<h1>Weet je je kleurtype?</h1><p class="mut">Dan kiest Ta-daa kleuren die je goed staan. Weet je het niet? Geen probleem.</p>
+      <div class="keuzelijst">${Object.entries(KLEURTYPES).map(([k,w])=>`<button class="secundair" data-kt="${k}" aria-pressed="${p.kleurtype===k}">${w[0]}${k!=="onbekend"?`<small>${w[1]}</small>`:""}</button>`).join("")}</div>`,
+    hakken:`<h1>Draag je graag hakken?</h1><p class="mut">Zo weet Ta‑daa of outfits met hakken vaak langs mogen komen.</p>
+      <div class="keuzelijst"><button class="secundair" data-hak="0" aria-pressed="${!p.comfort.geenHakken}">Ja, prima</button><button class="secundair" data-hak="1" aria-pressed="${!!p.comfort.geenHakken}">Liever niet</button></div>`};
+  app.innerHTML=`<div class="instellen"><p class="tour-label">Vraag ${i+1} van ${vragen.length}</p>${inhoud[v]}
+    <div class="tour-nav instellen-nav">${i?'<button class="link" id="vorige">Vorige</button>':'<button class="link" id="slaover">Sla over</button>'}<button class="primair" id="verder">${laatste?"Klaar":"Volgende"}</button></div>
+    <p class="mut" style="text-align:center;margin-top:10px;font-size:13px">Je kunt dit later altijd aanpassen bij Dit ben ik.</p></div>`;
+  const zet=f=>{S.profiel=p;f(p);bewaar();_ideeCache=null;instellen(i);};
+  app.querySelectorAll("[data-afd]").forEach(b=>b.onclick=()=>zet(p=>p.afdeling=b.dataset.afd));
+  app.querySelectorAll("[data-zone]").forEach(b=>b.onclick=()=>zet(p=>{const z=b.dataset.zone;p.zones[z]=STANDEN[(STANDEN.indexOf(mag(z))+1)%3];}));
+  app.querySelectorAll("[data-kt]").forEach(b=>b.onclick=()=>zet(p=>p.kleurtype=b.dataset.kt));
+  app.querySelectorAll("[data-hak]").forEach(b=>b.onclick=()=>zet(p=>p.comfort.geenHakken=b.dataset.hak==="1"));
+  const klaar=()=>{S.profiel=p;S.ingesteld=true;bewaar();toon();};
+  $("#verder").onclick=()=>laatste?klaar():instellen(i+1);
+  if($("#vorige")) $("#vorige").onclick=()=>instellen(i-1);
+  if($("#slaover")) $("#slaover").onclick=klaar;
+  scrollTo(0,0);
+}
 function welkom(){ setTimeout(startTour,50); app.innerHTML=""; }
 function uitleg(onderwerp,van="ik"){
   const terug=`<button class="terug" id="terug">${ICO.terug}Dit ben ik</button>`;
@@ -1115,7 +1148,7 @@ let tab="vandaag";
 const SCHERMEN={vandaag,outfits,kast,ik};
 const markeerMenu=()=>{document.querySelectorAll("nav [data-tab]").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
   const k=document.querySelector('nav [data-tab="kast"]'); k.classList.toggle("stip",kastCheck().length>0||teLabelen().length>0);};
-function toon(scroll=true){ markeerMenu(); SCHERMEN[tab](); document.querySelector("nav").hidden=moetEerstBeginscherm(); if(scroll) scrollTo(0,0); }
+function toon(scroll=true){ markeerMenu(); SCHERMEN[tab](); document.querySelector("nav").hidden=moetEerstBeginscherm()||(SITE&&!S.ingesteld&&!S.welkom&&TS<0&&tab==="vandaag"); if(scroll) scrollTo(0,0); }
 document.querySelectorAll("nav [data-tab]").forEach(b=>b.onclick=()=>{werk=null;tab=b.dataset.tab;toon();});
 opstarten();
 </script>
