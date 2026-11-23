@@ -360,8 +360,18 @@ async function bewaarFoto(blob,type){
   return (await assets.upload(blob,{type})).id;
 }
 const fotoSrc=a=>!a?"":a.startsWith("idb:")?(FOTO_URL[a]||""):"/_blob/"+a;
+function zonderAutomatisch(){ // stukken die nog gelabeld moeten worden: originele foto en geen geraden kleur
+  let anders=false;
+  for(const n of S.nieuw||[]){
+    if(n.klaar) continue;
+    if(n.uitgeknipt&&n.origineel&&n.asset!==n.origineel){n.asset=n.origineel;anders=true;}
+    if(n.kleurAuto&&n.kleuren.length===1&&n.kleuren[0]===n.kleurAuto){n.kleuren=[];anders=true;}
+    if(n.kleurAuto){n.kleurAuto=null;anders=true;}
+  }
+  if(anders) bewaar();
+}
 async function opstarten(){ // eerst de foto's van de telefoon laden, dan pas tekenen
-  await laadFotos(); syncNieuw(); toon();
+  await laadFotos(); zonderAutomatisch(); syncNieuw(); toon();
   if(SITE) navigator.storage?.persist?.().catch(()=>{});   // vraag de browser de gegevens niet zomaar op te ruimen
 }
 (async()=>{
@@ -817,10 +827,8 @@ async function verwerk(file){ // foto verkleinen en de hoofdkleur eruit halen (r
   const c=document.createElement("canvas"); c.width=Math.round(img.naturalWidth*sc); c.height=Math.round(img.naturalHeight*sc);
   const x=c.getContext("2d",{willReadFrequently:true}); x.drawImage(img,0,0,c.width,c.height); URL.revokeObjectURL(url);
   const blob=await new Promise(ok=>c.toBlob(ok,"image/jpeg",0.85));
-  const los=knipUit(x,c.width,c.height);
-  // kleur bepalen: liefst op de uitgeknipte foto (dan telt de achtergrond niet mee)
-  const kleur=los?hoofdkleur(los.getContext("2d",{willReadFrequently:true}),los.width,los.height,true):hoofdkleur(x,c.width,c.height);
-  return {kleur,blob,uitgeknipt:los?await new Promise(ok=>los.toBlob(ok,"image/png")):null};
+  // geen achtergrond weghalen en geen kleur raden meer (1.8): dat ging te vaak mis, jij kiest zelf
+  return {kleur:null,blob,uitgeknipt:null};
 }
 function knipUit(x,w,h){
   // Haalt een effen achtergrond weg, zonder AI: vanaf de rand kleurt hij alles weg wat op de randkleur lijkt
@@ -903,9 +911,9 @@ function labelStap(id){ // één voor één de juiste info geven
   app.innerHTML=`<div class="kop" style="margin-bottom:0"><button class="terug" id="terug">${ICO.terug}Kast</button><span class="mut">${plek>-1?`${plek+1} van ${totaal}`:"aanpassen"}</span></div>
   ${plek>-1?`<div class="voortgang"><i style="width:${Math.round(plek/Math.max(totaal,1)*100)}%"></i></div>`:""}
   <img class="groot" src="${fotoSrc(n.asset)}" alt="">
-  ${n.uitgeknipt?`<div class="pillen" style="margin:-4px 0 14px"><button class="pil" data-foto="los" aria-pressed="${n.asset===n.uitgeknipt}">Achtergrond weg</button><button class="pil" data-foto="orig" aria-pressed="${n.asset===n.origineel}">Originele foto</button></div>`:'<p class="mut" style="margin:-4px 0 14px">De achtergrond kon niet weg. Tip: fotografeer op een effen laken of tegen een muur.</p>'}
+  <div style="height:10px"></div>
   ${groep("Wat is het?",soorten.map(([k,t])=>chip("soort",k,t)).join(""))}
-  <div class="groep"><h3>Welke kleur?</h3><p class="mut" style="margin-bottom:8px">${n.kleurAuto?`Uit je foto: <b>${n.kleurAuto}</b>. Klopt het niet? Tik een andere.`:"Tik de hoofdkleur."} Meer kleuren mag: de eerste is de hoofdkleur.</p>
+  <div class="groep"><h3>Welke kleur?</h3><p class="mut" style="margin-bottom:8px">Tik de hoofdkleur. Meer kleuren mag: de eerste is de hoofdkleur.</p>
     <div class="swatches">${PALET.map(swatch).join("")}</div>
     <div class="pillen" style="margin-top:8px"><button class="pil" data-bool="patroon" aria-pressed="${!!n.patroon}">Heeft een patroon</button></div></div>
   ${schoen?"":groep("Pasvorm",["getailleerd","recht","wijd"].map(v=>chip("pasvorm",v,v[0].toUpperCase()+v.slice(1))).join("")+'<span class="breek"></span>'+["kort","normaal","lang"].map(v=>chip("lengte",v,v[0].toUpperCase()+v.slice(1))).join(""))}
@@ -1026,7 +1034,7 @@ function tekenTour(){
 addEventListener("resize",()=>{if(TS>=0) tekenTour();});
 const STAPPEN=[
   ["Voeg je kleding toe","Eén stuk per foto, liefst op een effen laken of tegen een muur. Meer foto's tegelijk mag."],
-  ["Vertel per stuk wat het is","Wat het is, de kleur, voor welk weer en hoe het voelt. Ta-daa doet alvast een voorstel voor de kleur."],
+  ["Vertel per stuk wat het is","Wat het is, de kleur, voor welk weer en hoe het voelt."],
   ["Vertel wie je bent","Bij Dit ben ik kies je wat je graag laat zien en welke regels je wilt."],
   ["Laat je verrassen","Tik op het weer en waar je zin in hebt, Ta‑daa stelt een outfit voor."],
   ["Vertel hoe het voelde","Eén tik na het dragen is genoeg. Zo leert Ta-daa wat bij jou past."]];
