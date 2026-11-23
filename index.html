@@ -230,7 +230,13 @@ input[type=range]{width:100%;margin:8px 0 0;accent-color:var(--accent);height:28
 .swatch[aria-pressed="true"]{outline:3px solid var(--inkt);outline-offset:2px}
 .swatch b{background:var(--vlak);color:var(--inkt);border-radius:50%;width:18px;height:18px;font-size:11px;display:grid;place-items:center}
 .breek{flex-basis:100%;height:0}
-.vastonder{position:sticky;bottom:calc(76px + env(safe-area-inset-bottom,0px));background:var(--bg);padding:10px 0 0;margin-top:8px}
+.vastonder{position:sticky;bottom:var(--nav-h,calc(76px + env(safe-area-inset-bottom,0px)));background:var(--bg);padding:10px 0 8px;margin-top:8px;z-index:5}
+.vastonder::before{content:"";position:absolute;left:-16px;right:-16px;bottom:100%;height:34px;background:linear-gradient(to bottom,transparent,var(--bg));pointer-events:none}
+.vastonder::after{content:"";position:absolute;left:-16px;right:-16px;top:100%;height:24px;background:var(--bg)}
+.meer-hint{display:flex;align-items:center;justify-content:center;gap:4px;font-size:13px;font-weight:600;color:var(--mut);margin:0 0 8px}
+.meer-hint svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;animation:wip 1.6s ease-in-out infinite}
+@keyframes wip{50%{transform:translateY(3px)}}@media (prefers-reduced-motion:reduce){.meer-hint svg{animation:none}}
+.vastonder.einde .meer-hint{display:none}
 
 /* Dit ben ik */
 .blok{background:var(--vlak);border-radius:18px;padding:14px;margin-bottom:12px}
@@ -317,7 +323,7 @@ const FAMILIE={rood:"rood",bordeaux:"rood",oranje:"rood",roest:"rood",fuchsia:"r
 const KLEURTYPES={winter:["Winter","koel, helder, veel contrast",["ecru","olijf","roest","oranje","taupe"]],zomer:["Zomer","koel en zacht",["zwart","oranje","limoen"]],
   lente:["Lente","warm en helder",["zwart","aubergine","bordeaux"]],herfst:["Herfst","warm en gedempt",["fuchsia","kobalt","lichtblauw"]],onbekend:["Weet ik niet","de kast kijkt alleen naar je regels",[]]};
 const WEER=[["koud","Koud"],["fris","Fris"],["warm","Warm"]];
-const DRAGEN=[["los","Los"],["onder","Onder iets"],["over","Over iets"],["knopen","Knopen"],["instoppen","Instoppen"]];
+const DRAGEN=[["los","Los"],["onder","Onder iets"],["over","Over iets"]];
 const ICO_EXTRA={camera:'<svg class="ico" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',lagen:'<svg class="ico" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg>'};
 const ICO={wissel:'<svg class="ico" viewBox="0 0 24 24"><path d="M7 7h11l-3-3M17 17H6l3 3"/></svg>',plus:'<svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',x:'<svg class="ico" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>',terug:'<svg class="ico" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>'};
 
@@ -944,8 +950,9 @@ function labelStap(id){ // één voor één de juiste info geven
   ${schoen?"":groep("Wat laat het zien?",zones().map(([z,t])=>chip("zichtbaar",z,t,true)).join(""))}
   ${groep("Voor welk weer?",WEER.map(([v,t])=>chip("weer",v,t,true)).join(""))}
   ${groep("Hoe voelt dit stuk?",[["comfy","Comfortabel"],["sexy","Sexy"],["stoer","Stoer"]].map(([v,t])=>chip("tags",v,t,true)).join("")+((onder||schoen)&&!heren()?`<button class="pil" data-bool="hak" aria-pressed="${!!n.hak}">${schoen?"Met hak":"Alleen met hakken"}</button>`:""))}
-  <div class="vastonder"><button class="primair" id="volgende" ${klaarOk?"":"disabled"}>${klaarOk?(plek>-1&&plek<totaal-1?"Klaar, volgende foto":"Klaar"):"Kies eerst wat het is, de kleur en het weer"}</button>
+  <div class="vastonder"><p class="meer-hint" aria-hidden="true">Scroll voor meer opties<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></p><button class="primair" id="volgende" ${klaarOk?"":"disabled"}>${klaarOk?(plek>-1&&plek<totaal-1?"Klaar, volgende foto":"Klaar"):"Kies eerst soort, kleur en weer"}</button>
   <div style="display:flex;justify-content:space-between">${plek>-1&&totaal>1?'<button class="link" id="overslaan">Later doen</button>':"<span></span>"}<button class="link" id="fotoweg">Verwijder foto</button></div></div>`;
+  navMaat(); requestAnimationFrame(eindeCheck);
   const opnieuw=()=>{const y=scrollY;labelStap(id);scrollTo(0,y);};
   app.querySelectorAll("[data-veld]").forEach(b=>b.onclick=()=>{const v=b.dataset.veld,w=b.dataset.waarde;
     if(b.dataset.meer==="1"){n[v]??=[];const i=n[v].indexOf(w);i>-1?n[v].splice(i,1):n[v].push(w);} else n[v]=n[v]===w?"":w;
@@ -1189,7 +1196,10 @@ let tab="vandaag";
 const SCHERMEN={vandaag,outfits,kast,ik};
 const markeerMenu=()=>{document.querySelectorAll("nav [data-tab]").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
   const k=document.querySelector('nav [data-tab="kast"]'); k.classList.toggle("stip",kastCheck().length>0||teLabelen().length>0);};
-function toon(scroll=true){ markeerMenu(); SCHERMEN[tab](); document.querySelector("nav").hidden=moetEerstBeginscherm()||(SITE&&!S.ingesteld&&!S.welkom&&TS<0&&tab==="vandaag"); if(scroll) scrollTo(0,0); }
+function toon(scroll=true){ markeerMenu(); SCHERMEN[tab](); document.querySelector("nav").hidden=moetEerstBeginscherm()||(SITE&&!S.ingesteld&&!S.welkom&&TS<0&&tab==="vandaag"); if(scroll) scrollTo(0,0); navMaat(); eindeCheck(); }
+function navMaat(){const n=document.querySelector("nav");if(n&&!n.hidden)document.documentElement.style.setProperty("--nav-h",n.offsetHeight+"px");}
+function eindeCheck(){const v=document.querySelector(".vastonder");if(v)v.classList.toggle("einde",innerHeight+scrollY>=document.documentElement.scrollHeight-30);}
+addEventListener("resize",()=>{navMaat();eindeCheck();});addEventListener("scroll",eindeCheck,{passive:true});
 document.querySelectorAll("nav [data-tab]").forEach(b=>b.onclick=()=>{werk=null;tab=b.dataset.tab;toon();});
 opstarten();
 </script>
