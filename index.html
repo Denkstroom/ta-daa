@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#121416" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Ta-daa">
+<meta name="apple-mobile-web-app-title" content="Ta-daa!">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -16,7 +16,7 @@
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}</style>
 </head>
 <body>
-<title>Ta-daa</title>
+<title>Ta-daa!</title>
 <!--
   KAST-APP (werktitel "Wat trek ik aan")
   Bron van deze pagina: sjabloon.html. Bouwen met: python3 scripts/kast-app-bouw.py
@@ -121,7 +121,7 @@ h3{font-size:15px;margin:0 0 8px;font-weight:700}
 .wisselknop small{font-size:11.5px;color:var(--mut);font-weight:600}
 .wisselknop b{font-size:17px}
 .tafel{position:relative;display:block;width:100%;height:min(48vh,410px);border-radius:24px;background:var(--tafel);margin-bottom:12px;overflow:hidden}
-.pol{position:absolute;width:44%;background:var(--polaroid);padding:6px 6px 22px;border-radius:3px;box-shadow:0 10px 18px -10px rgba(0,0,0,.55)}
+.pol{position:absolute;width:44%;background:var(--polaroid);padding:6px 6px 16px;border-radius:3px;box-shadow:0 10px 18px -10px rgba(0,0,0,.55)}
 .pol img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--foto)}
 .pol i{position:absolute;left:8px;bottom:4px;font-style:normal;font-size:11px;font-weight:700;color:#59646a}
 .mini-pol{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:6px;background:var(--tafel);border-radius:14px}
@@ -131,6 +131,7 @@ h3{font-size:15px;margin:0 0 8px;font-weight:700}
 .lagen-foto img{width:100%;aspect-ratio:3/4.1;object-fit:contain;background:var(--foto);border-radius:14px;display:block}
 .voorstel .onder{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 6px 2px;font-size:13.5px;color:var(--inkt);opacity:.75}
 .knoppen{display:grid;grid-template-columns:auto 1fr;gap:8px;margin-bottom:16px}
+.secundair.rond{width:52px;height:52px;padding:0;border-radius:50%}.secundair.rond .ico{width:24px;height:24px}
 .politie{background:var(--accent-zacht);border-radius:16px;padding:10px 14px;margin:-4px 0 12px;font-size:14.5px}
 .politie b{display:block;font-size:12px;color:var(--mut);font-weight:700}
 .kastcheck{display:grid;grid-template-columns:72px 1fr;gap:12px;background:var(--accent-zacht);border-radius:18px;padding:12px;margin-bottom:12px}
@@ -590,13 +591,13 @@ function vandaag(){
   const o=lijst.length?lijst[plek%lijst.length]:null;
   const politie=Object.keys(MODEPOLITIE).map(Number).filter(x=>x<=andereTeller).pop();
   const weerNaam=WEER.find(w=>w[0]===weerNu())[1], zinNaam=ZIN.find(z=>z[0]===zinNu())[1];
-  app.innerHTML=`<div class="midden"><div class="boven">${groet()}</div><h1>Wat wil je vandaag aan?</h1>
+  app.innerHTML=`<div class="midden"><div class="boven">${groet()}</div><h1>Wat wil je aan?</h1>
   <div class="wissels"><button class="wisselknop" id="weerknop" aria-label="Weer: ${weerNaam}. Tik om te wisselen"><small>Weer</small><b>${weerNaam}</b></button>
     <button class="wisselknop" id="zinknop" aria-label="Zin in: ${zinNaam}. Tik om te wisselen"><small>Zin in</small><b>${zinNaam}</b></button></div></div>
   ${politie?`<div class="politie" role="status"><b>Modepolitie</b>${MODEPOLITIE[politie]}</div>`:""}
   ${o?`<button class="tafel" id="open" aria-label="Bekijk deze outfit laag voor laag">${polaroids(o.stukken)}</button>
-    <div class="knoppen"><button class="secundair" id="andere">${ICO.wissel}Andere</button><button class="primair" id="aan">Trek ik aan</button></div>`
-  :kleding<2?`<div class="leeg-staat"><b>Je kast is nog leeg</b><br>Voeg eerst wat kleding toe. Dan gaat Ta-daa voor je combineren.</div><button class="primair" id="naarkast" style="margin-top:10px">Kleding toevoegen</button>`
+    <div class="knoppen"><button class="secundair rond" id="andere" aria-label="Laat een andere outfit zien">${ICO.wissel}</button><button class="primair" id="aan">Trek ik aan</button></div>`
+  :kleding<2?`<div class="leeg-staat"><b>Je kast is nog leeg</b><br>Voeg eerst wat kleding toe. Dan gaat Ta-daa voor je combineren.</div><button class="primair" id="naarkast" style="margin-top:10px">Kleding toevoegen</button>${TIP_ONLINE}`
   :`<div class="leeg-staat">Geen outfits voor ${weerNaam.toLowerCase()} weer${zinNu()!=="alles"?" die "+zinNaam.toLowerCase()+" zijn":""}. Tik op het weer of op "Zin in" om te wisselen.</div>`}`;
   if(o){
     $("#andere").onclick=()=>{overgeslagen(o.nr);plek++;andereTeller++;vandaag();};
@@ -612,7 +613,7 @@ const POLAROID_PLEK={1:[[50,50,-2]],2:[[31,44,-5],[69,56,4]],3:[[28,30,-6],[72,3
 function polaroids(ids){ // de outfit als polaroids op een tafel; gewone foto's zien er zo toch netjes uit
   const st=gesorteerd(ids).filter(id=>K[id]).slice(0,5), plek=POLAROID_PLEK[st.length]||POLAROID_PLEK[5];
   const breedte={1:58,2:46,3:40,4:36,5:33}[st.length]||33;   // hoe meer lagen, hoe kleiner de polaroids
-  return st.map((id,i)=>{const [x,y,r]=plek[i];return `<span class="pol" style="width:${breedte}%;left:${x}%;top:${y}%;transform:translate(-50%,-50%) rotate(${r}deg);z-index:${i+1}"><img src="${K[id].foto}" alt="${esc(K[id].naam)}"><i>${LAAGNAAM[LAAG[K[id].soort]]||""}</i></span>`;}).join("");
+  return st.map((id,i)=>{const [x,y,r]=plek[i];return `<span class="pol" style="width:${breedte}%;left:${x}%;top:${y}%;transform:translate(-50%,-50%) rotate(${r}deg);z-index:${i+1}"><img src="${K[id].foto}" alt="${esc(K[id].naam)}"></span>`;}).join("");
 }
 function trekAan(nr){andereTeller=0;nr=bewaarIdee(nr);S.gedragen.push({nr,datum:vandaagDatum()});bewaar();melding("Veel plezier! Vanavond vraag ik hoe het voelde.");}
 
@@ -746,6 +747,7 @@ function kastCheck(){ // stukken die je al een maand niet droeg, en die je niet 
   return kastNu().filter(k=>{const l=laatstGedragen(k.id);const later=S.check?.[k.id];
     return (!l||dagen(l)>=30)&&!(later&&later>vandaagDatum());});
 }
+const TIP_ONLINE=`<div class="tip" style="margin-top:12px"><b>Tip</b>Bestel je online kleding? Maak screenshots van de productfoto's!</div>`;
 const teLabelen=()=>(S.nieuw||[]).filter(n=>!n.klaar&&!S.wegStuk.includes(n.id));
 function kast(){
   const g=kast.g||"alles", w=kast.w||"kast", open=teLabelen();
@@ -762,7 +764,8 @@ function kast(){
   :open.length?`<p class="mut" style="margin-bottom:10px">Loop ze één voor één door en geef ze de juiste info. Daarna staan ze in je kast.</p>
     <button class="primair" id="start" style="margin-bottom:12px">Begin met labelen</button>
     <div class="raster">${open.map(n=>`<button class="stuk" data-n="${n.id}"><img src="${fotoSrc(n.asset)}" alt=""><span>Nog labelen</span></button>`).join("")}</div>`
-  :`<div class="leeg-staat">Niks te labelen. Tik op Kleding toevoegen. Meer foto's tegelijk mag.</div>`}`;
+  :`<div class="leeg-staat">Niks te labelen. Tik op Kleding toevoegen. Meer foto's tegelijk mag.</div>`}
+  ${!(S.nieuw||[]).length&&!KAST_BASIS.length?TIP_ONLINE:""}`;
   app.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{kast.w=b.dataset.w;kast();});
   if(check){
     const later=d=>{const t=new Date();t.setDate(t.getDate()+d);(S.check??={})[check.id]=t.toISOString().slice(0,10);};
