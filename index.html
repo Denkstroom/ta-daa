@@ -108,12 +108,18 @@ h3{font-size:15px;margin:0 0 8px;font-weight:700}
 .wat{font-size:17px;margin:6px 0 8px}
 .app-icoon{width:84px;height:84px;border-radius:20px;margin:16px auto 10px;display:block;box-shadow:0 8px 20px -8px rgba(0,0,0,.4)}
 .welkom-kop{color:var(--accent);font-size:26px}
-.stappen.compact li{padding:10px 12px;align-items:center}.stappen.compact span:empty{display:none}.stappen.compact li::before{grid-row:auto}
+.gate{list-style:none;margin:16px 0;padding:0;display:flex;flex-direction:column;gap:10px}
+.gate-stap{display:flex;gap:12px;align-items:center;background:var(--vlak);border-radius:20px;padding:10px 14px;font-size:15.5px}
+.gate-nr{flex:none;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--op-accent);display:grid;place-items:center;font-weight:700;font-size:14px}
+.gate-ic{flex:none;width:38px;height:38px;border-radius:12px;background:var(--accent-zacht);color:var(--accent);display:grid;place-items:center;overflow:hidden}
+.gate-ic img{width:100%;height:100%}
 #tour{position:fixed;inset:0;z-index:40}
-.tour-gat{position:fixed;border-radius:16px;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(8,16,18,.74);pointer-events:none;transition:all .2s ease}
-.tour-wolk{position:fixed;left:16px;right:16px;max-width:420px;margin:0 auto;background:var(--vlak);border:3px solid var(--accent);border-radius:20px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
-.tour-wolk h3{font-size:18px;margin:6px 0 4px}.tour-wolk p{margin:0 0 6px}
-.tour-label{display:inline-block;background:var(--accent);color:var(--op-accent);font-weight:700;font-size:12px;border-radius:8px;padding:1px 8px;transform:rotate(-2deg)}
+.tour-gat{position:fixed;box-shadow:0 0 0 9999px rgba(5,12,13,.72);pointer-events:none;transition:all .2s ease}
+.tour-pijl{position:fixed;inset:0;pointer-events:none;fill:none;stroke:var(--accent);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;opacity:.85}
+.tour-wolk{position:fixed;left:16px;right:16px;max-width:420px;margin:0 auto;background:var(--vlak);border-radius:24px;padding:18px 18px 14px;box-shadow:0 16px 40px -12px rgba(0,0,0,.6)}
+.tour-wolk h3{font-size:18px;margin:2px 0 4px}.tour-wolk p{margin:0 0 6px}
+.tour-label{font-size:12px;font-weight:600;color:var(--mut);margin:0}
+#tour button:focus{outline:none}#tour button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .tour-nav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}.tour-nav .primair{width:auto;padding:11px 18px}.tour-nav .link{margin:0}
 @media (prefers-reduced-motion:reduce){.tour-gat{transition:none}}
 .stappen li::before{content:counter(stap);grid-row:span 2;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--op-accent);display:grid;place-items:center;font-weight:700}
@@ -591,7 +597,7 @@ const ZIN=[["alles","Alles"],...BEHOEFTES];
 function zinNu(){return Object.keys(behoefte).find(k=>behoefte[k])||"alles";}
 function vandaag(){
   if(moetEerstBeginscherm()) return beginscherm();
-  if(SITE&&!S.welkom) return welkom();
+  if(SITE&&!S.welkom&&TS<0) return welkom();
   const open=S.gedragen.filter(g=>!g.klaar).slice(-1)[0];
   const tijdVoorVraag=open&&(open.datum<vandaagDatum()||new Date().getHours()>=17);   // pas 's avonds of de volgende dag
   if(open&&vind(open.nr)&&tijdVoorVraag&&!(open.later&&open.later>=vandaagDatum())) return voelde(open);
@@ -955,11 +961,15 @@ const isAndroid=()=>/Android/.test(navigator.userAgent||"");
 const WAT_IS_TADAA=`<p class="wat">Met deze app weet je wat je in je kast hebt hangen, en krijg je verrassende outfits.</p><p class="mut">Alles wordt op je eigen telefoon opgeslagen.</p>`;
 // Eerst: zet Ta-daa op je beginscherm (zoals HopHap). Pas in de app zelf volgt de handleiding.
 const moetEerstBeginscherm=()=>{try{return SITE&&!isApp()&&!localStorage.getItem("tadaa-browser");}catch(e){return false;}};
-function beginschermStappen(){
-  const stap=(n,t)=>`<li><b>${n}</b><span>${t}</span></li>`;
-  if(isIOS()) return `<ol class="stappen compact">${stap("Tik op Deel","(of eerst op ···)")}${stap("Kies Zet op beginscherm","")}${stap("Open Ta-daa vanaf je beginscherm","")}</ol>`;
-  if(isAndroid()) return `<ol class="stappen compact">${stap("Tik op ⋮ rechtsboven","")}${stap("Kies App installeren","")}${stap("Open Ta-daa vanaf je startscherm","")}</ol>`;
-  return `<ol class="stappen compact">${stap("Open deze pagina op je telefoon","")}${stap("Zet hem op je beginscherm","")}${stap("Open Ta-daa vanaf je beginscherm","")}</ol>`;
+function beginschermStappen(){ // zoals HopHap: nummer, icoontje, korte zin
+  const ic=d=>`<svg class="ico" viewBox="0 0 24 24">${d}</svg>`;
+  const DEEL=ic('<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><path d="m16 6-4-4-4 4"/><path d="M12 2v13"/>');
+  const PLUS=ic('<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8"/>');
+  const PUNTEN=ic('<circle cx="12" cy="5" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="12" cy="19" r="1.2"/>');
+  const APP='<img src="icon-192.png" alt="">';
+  const stap=(n,icoon,tekst)=>`<li class="gate-stap"><span class="gate-nr">${n}</span><span class="gate-ic">${icoon}</span><span>${tekst}</span></li>`;
+  if(isAndroid()) return `<ol class="gate">${stap(1,PUNTEN,"Tik rechtsboven op <b>⋮</b>.")}${stap(2,PLUS,"Kies <b>App installeren</b> of <b>Toevoegen aan startscherm</b>.")}${stap(3,APP,"Open Ta-daa! vanaf je startscherm.")}</ol>`;
+  return `<ol class="gate">${stap(1,DEEL,"Tik op <b>Deel</b>. Niet te zien? Eerst op <b>···</b>.")}${stap(2,PLUS,"Kies <b>Zet op beginscherm</b>.")}${stap(3,APP,"Open Ta-daa! vanaf je beginscherm.")}</ol>`;
 }
 function beginscherm(){
   app.innerHTML=`<div class="midden"><img class="app-icoon" src="icon-192.png" alt=""><h1 class="welkom-kop">Hoi, welkom bij Ta-daa!</h1>
@@ -974,7 +984,7 @@ const TOUR=[ // wijst op de schermen zelf aan wat je doet
   {tab:"kast",doel:"#plus",kop:"Voeg je kleding toe",tekst:"Eén stuk per foto, liefst op een effen laken of tegen een muur. Meer foto's tegelijk mag."},
   {tab:"kast",doel:'[data-w="labelen"]',kop:"Vertel per stuk wat het is",tekst:"Je nieuwe foto's komen hier. Tik ze één voor één aan: wat het is, de kleur, voor welk weer en hoe het voelt."},
   {tab:"ik",doel:'nav [data-tab="ik"]',kop:"Vertel wie je bent",tekst:"Kies wat je graag laat zien en welke regels je wilt. Ta-daa houdt er rekening mee."},
-  {tab:"vandaag",doel:'nav [data-tab="vandaag"]',kop:"Laat je verrassen",tekst:"Tik op het weer en waar je zin in hebt, Ta-daa stelt een outfit voor."},
+  {tab:"vandaag",doel:".wissels",kop:"Laat je verrassen",tekst:"Tik op het weer en waar je zin in hebt, Ta-daa stelt een outfit voor."},
   {tab:"outfits",doel:'nav [data-tab="outfits"]',kop:"Vertel hoe het voelde",tekst:"Na het dragen vraagt Ta-daa hoe het voelde. Eén tik is genoeg. Je outfits en favorieten staan hier."}];
 let TS=-1;
 function startTour(){ TS=0; tekenTour(); }
@@ -985,17 +995,24 @@ function tourVolgende(klaar){
 function tekenTour(){
   const st=TOUR[TS]; tab=st.tab; if(st.tab==="kast") kast.w="kast"; toon();
   const el=document.querySelector(st.doel), box=$("#tour"); if(!el){ tourVolgende(); return; }
-  const r=el.getBoundingClientRect(), pad=6, H=innerHeight, laatste=TS===TOUR.length-1;
+  const r=el.getBoundingClientRect(), pad=6, H=innerHeight, W=innerWidth, laatste=TS===TOUR.length-1;
+  const rond=parseFloat(getComputedStyle(el).borderRadius)||14;
   box.hidden=false;
-  box.innerHTML=`<div class="tour-gat" style="top:${r.top-pad}px;left:${r.left-pad}px;width:${r.width+2*pad}px;height:${r.height+2*pad}px"></div>
+  box.innerHTML=`<div class="tour-gat" style="top:${r.top-pad}px;left:${r.left-pad}px;width:${r.width+2*pad}px;height:${r.height+2*pad}px;border-radius:${rond+pad}px"></div>
+    <svg class="tour-pijl" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" aria-hidden="true"></svg>
     <div class="tour-wolk" role="dialog" aria-modal="true" aria-label="${esc(st.kop)}">
-      <p class="tour-label">Uitleg ${TS+1}/${TOUR.length}</p><h3>${esc(st.kop)}</h3><p>${esc(st.tekst)}</p>
+      <p class="tour-label">Uitleg ${TS+1} van ${TOUR.length}</p><h3>${esc(st.kop)}</h3><p>${esc(st.tekst)}</p>
       <div class="tour-nav">${laatste?"<span></span>":'<button class="link" id="tour-over">Overslaan</button>'}<button class="primair" id="tour-verder">${laatste?"Aan de slag!":"Volgende"}</button></div></div>`;
-  const w=box.querySelector(".tour-wolk"), h=w.offsetHeight;
-  w.style.top=(r.bottom+pad+16+h<=H-12?r.bottom+pad+16:Math.max(12,r.top-pad-16-h))+"px";
+  // wolkje onder het doel als het past, anders erboven; ertussen ruimte voor de pijl
+  const w=box.querySelector(".tour-wolk"), h=w.offsetHeight, gat=52, boven=r.top-pad, onder=r.bottom+pad;
+  const kant=onder+gat+h<=H-12?"onder":"boven";
+  w.style.top=(kant==="onder"?onder+gat:Math.max(12,boven-gat-h))+"px";
+  const wr=w.getBoundingClientRect(), cx=Math.min(Math.max(r.left+r.width/2,28),W-28);
+  const sx=Math.min(Math.max(cx-40,wr.left+40),wr.right-40), sy=kant==="onder"?wr.top-4:wr.bottom+4, ey=kant==="onder"?onder+6:boven-6;
+  const k=10, hoek=Math.atan2(ey-sy,cx-sx), kop=a=>`${cx-k*Math.cos(hoek+a)},${ey-k*Math.sin(hoek+a)}`;
+  box.querySelector(".tour-pijl").innerHTML=`<path d="M${sx},${sy} Q${sx},${ey} ${cx},${ey}"/><path d="M${kop(.5)} L${cx},${ey} L${kop(-.5)}"/>`;
   $("#tour-verder").onclick=()=>tourVolgende(laatste);
   if($("#tour-over")) $("#tour-over").onclick=()=>tourVolgende(true);
-  $("#tour-verder").focus({preventScroll:true});
 }
 addEventListener("resize",()=>{if(TS>=0) tekenTour();});
 const STAPPEN=[
