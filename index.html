@@ -404,6 +404,13 @@ const soortenVan=k=>k?[k.soort,...(k.ook||[])].filter(Boolean):[];
 const isSoort=(k,l)=>soortenVan(k).some(s=>l.includes(s));
 const lagenVan=k=>soortenVan(k).map(s=>LAAG[s]);
 const metPanty=id=>isSoort(K[id],["rok","jurk"]);
+// welke rol speelt een stuk in deze outfit? (vest-jurk naast een jurk = vest, naast een vest = jurk)
+function rolVan(id,ids){
+  const l=[...new Set(lagenVan(K[id]))]; if(l.length<2) return l[0]||LAAG[K[id]?.soort];
+  const ander=new Set((ids||[]).filter(x=>x!==id&&K[x]).map(x=>LAAG[K[x].soort]));
+  const ok=l.filter(r=>!ander.has(r)&&!(r==="Basis"&&(ander.has("Top")||ander.has("Onder")))&&!((r==="Top"||r==="Onder")&&ander.has("Basis")));
+  return ok[0]||l[0];
+}
 const actief=id=>K[id]&&!S.wegStuk.includes(id);
 // kast als kleurwaaier: licht → warm → koel → groen → aardetinten → donker
 const WAAIER=["wit","ecru","geel","limoen","oranje","rood","lichtroze","roze","fuchsia","bordeaux","aubergine","lila","paars","lichtblauw","blauw","kobalt","denim","donkerblauw","turquoise","petrol","zeegroen","smaragd","salie","olijf","donkergroen","taupe","bruin","grijs","zwart"];
@@ -425,8 +432,8 @@ const REGELS=[ // algemene regels: voor iedereen
   {id:"eentonig",groep:"Kleur",tekst:"Niet alles uit één kleurfamilie",verbod:c=>new Set(c.fam).size===1&&c.fam.length>=2},
   {id:"fel",groep:"Kleur",tekst:"Minstens één felle kleur",verbod:c=>![...c.kl].some(k=>FEL.has(k))},
   {id:"patroon",groep:"Combineren",tekst:"Niet twee patronen",verbod:c=>c.ids.filter(isPatroon).length>1},
-  {id:"vesttrui",groep:"Combineren",tekst:"Geen vest over een trui",verbod:c=>c.its.some(i=>i.soort==="trui")&&c.its.some(i=>["vest","kimono"].includes(i.soort))},
-  {id:"wijd",groep:"Combineren",tekst:"Niet wijd met wijd",verbod:c=>c.its.some(i=>["vest","kimono"].includes(i.soort)&&i.pasvorm==="wijd")&&c.its.some(i=>["broek","rok"].includes(i.soort)&&i.pasvorm==="wijd")},
+  {id:"vesttrui",groep:"Combineren",tekst:"Geen vest over een trui",verbod:c=>c.its.some(i=>i.soort==="trui")&&c.its.some(i=>rolVan(i.id,c.ids)==="Bovenlaag")},
+  {id:"wijd",groep:"Combineren",tekst:"Niet wijd met wijd",verbod:c=>c.its.some(i=>rolVan(i.id,c.ids)==="Bovenlaag"&&i.pasvorm==="wijd")&&c.its.some(i=>["broek","rok"].includes(i.soort)&&i.pasvorm==="wijd")},
   {id:"weer",groep:"Combineren",tekst:"Past bij het weer van vandaag",verbod:c=>!c.its.every(pastWeer)},
   {id:"blikvanger",groep:"Voorkeur",tekst:"Eén blikvanger per outfit",voorkeur:c=>c.its.some(i=>i.patroon)&&c.its.some(i=>!i.patroon&&!["hemdje","schoenen"].includes(i.soort)&&STRAK_FEL.has(i.kleuren?.[0]))?-1:0},
   {id:"herhaal",groep:"Voorkeur",tekst:"Een kleur die terugkomt",voorkeur:c=>{const a=c.its.flatMap(i=>i.kleuren||[]);return a.some((k,i)=>k!=="zwart"&&a.indexOf(k)!==i)?1:0;}},
@@ -466,7 +473,7 @@ function voorkeur(ids){
 }
 function zichtScore(ids){ // wat laat deze outfit zien, en hoe voel jij je daarbij?
   const its=ids.map(id=>K[id]); const bedekt=new Set();
-  if(its.some(i=>LAAG[i.soort]==="Bovenlaag")) ["schouders","armen","rug"].forEach(z=>bedekt.add(z));
+  if(ids.some(id=>rolVan(id,ids)==="Bovenlaag")) ["schouders","armen","rug"].forEach(z=>bedekt.add(z));
   const zicht=new Set(its.filter(i=>i.soort!=="hemdje").flatMap(i=>labels(i.id).zichtbaar).filter(z=>!bedekt.has(z)));
   let s=0; const z=P().zones;
   zicht.forEach(x=>{ if(z[x]==="ja") s+=.4; if(z[x]==="nee") s-=1.2; });
@@ -519,7 +526,7 @@ function ideeen(vast){
   const telling={}, uit=[], vrij=(k,max)=>(telling[k]||0)<max;
   for(const c of kandidaten.sort((a,b)=>b.s-a.s)){
     const ids=kledingIn(c), hoofd=ids[0];
-    const onder=ids.find(id=>["broek","rok"].includes(K[id].soort))||"-", vest=ids.find(id=>LAAG[K[id].soort]==="Bovenlaag")||"-", acc=ids.find(id=>K[id].soort==="hemdje")||"-";
+    const onder=ids.find(id=>["broek","rok"].includes(K[id].soort))||"-", vest=ids.find(id=>rolVan(id,ids)==="Bovenlaag")||"-", acc=ids.find(id=>K[id].soort==="hemdje")||"-";
     const sleutels=[hoofd,"o"+onder,"v"+vest,"a"+acc,...ids.filter(id=>K[id].lastig).map(id=>"l"+id)];
     const max=k=>k.startsWith("l")?1:k==="v-"||k==="a-"?99:k.startsWith("o")||k.startsWith("v")||k.startsWith("a")?4:2;
     if(!sleutels.every(k=>vrij(k,max(k)))) continue;
@@ -618,8 +625,9 @@ function ik(){
 
 /* ================= 7. Vandaag, Hoe voelde het, Laag voor laag ================= */
 let plek=0, andereTeller=0;
-const MODEPOLITIE={5:"Modepolitie hier. U heeft vijf keer op Andere getikt. Dat is genoteerd.",8:"Tip van de modepolitie: de eerste was ook al leuk.",12:"We sturen een agent langs met een willekeurige trui. Nog even geduld.",16:"De kast gaat even zitten. Kies er gewoon eentje, het is maar kleding.",20:"Proces-verbaal: u bent officieel te mooi voor al uw kleding. Zaak gesloten."};
-const vandaagDatum=()=>new Date().toISOString().slice(0,10);
+const MODEPOLITIE={5:"Modepolitie hier. U heeft vijf keer om een andere outfit gevraagd. Dat is genoteerd.",8:"Tip van de modepolitie: de eerste was ook al leuk.",12:"We sturen een agent langs met een willekeurige trui. Nog even geduld.",16:"De kast gaat even zitten. Kies er gewoon eentje, het is maar kleding.",20:"Proces-verbaal: u bent officieel te mooi voor al uw kleding. Zaak gesloten."};
+const datumVan=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const vandaagDatum=()=>datumVan(new Date());
 const ZIN=[["alles","Alles"],...BEHOEFTES];
 function zinNu(){return Object.keys(behoefte).find(k=>behoefte[k])||"alles";}
 function vandaag(){
@@ -641,6 +649,7 @@ function vandaag(){
   ${o?`<button class="tafel" id="open" aria-label="Bekijk deze outfit laag voor laag">${polaroids(o.stukken)}</button>
     <div class="knoppen"><button class="secundair rond" id="andere" aria-label="Laat een andere outfit zien">${ICO.wissel}</button><button class="primair" id="aan">Trek ik aan</button></div>`
   :kleding<2?`<div class="leeg-staat"><b>Je kast is nog leeg</b><br>Voeg eerst wat kleding toe. Dan gaat Ta-daa voor je combineren.</div><button class="primair" id="naarkast" style="margin-top:10px">Kleding toevoegen</button>`
+  :!alle().length?`<div class="leeg-staat"><b>Nog geen outfits</b><br>Ta-daa heeft minstens een top en een broek of rok nodig, of een jurk met een vest.</div><button class="primair" id="naarkast" style="margin-top:10px">Naar mijn kast</button>`
   :`<div class="leeg-staat">Geen outfits voor ${weerNaam.toLowerCase()} weer${zinNu()!=="alles"?" die "+zinNaam.toLowerCase()+" zijn":""}. Tik op het weer of op "Zin in" om te wisselen.</div>`}`;
   if(o){
     $("#andere").onclick=()=>{overgeslagen(o.nr);plek++;andereTeller++;vandaag();};
@@ -693,26 +702,28 @@ function laagVoorLaag(nr,van){
   const o=vind(nr); if(!o){tab=van;return toon();}
   if(!werk||werk.nr!==o.nr) werk={nr:o.nr,stukken:[...o.stukken]};
   const gewijzigd=werk.stukken.join()!==o.stukken.join(), ids=gesorteerd(werk.stukken);
-  const heeft=new Set(ids.map(id=>LAAG[K[id].soort]));
-  const leeg=["Accent","Schoenen"].filter(l=>!heeft.has(l)&&!(l==="Accent"&&heeft.has("Basis")&&!heeft.has("Top")));
+  const heeft=new Set(ids.map(id=>rolVan(id,ids)));
+  const leeg=["Bovenlaag","Accent","Schoenen"].filter(l=>!heeft.has(l)&&!(l==="Accent"&&heeft.has("Basis")&&!heeft.has("Top")));
   const terugNaar={vandaag:"Vandaag",outfits:"Outfits"}[van]||"Terug";
   app.innerHTML=`<button class="terug" id="terug">${ICO.terug}${terugNaar}</button>
   <p class="mut">${o.idee?"Idee van de kast":favoriet(o)?"Favoriet":"Mijn outfit"}</p>
-  <div class="slots">${ids.map(slotKnop).join("")}${leeg.map(l=>`<button class="slot leeg" data-leeg="${l}"><span class="plek">${ICO.plus}</span><span><span class="wat">${l}</span><b>${l==="Accent"?"Hemdje eronder?":"Kies schoenen"}</b></span><span></span></button>`).join("")}</div>
+  <div class="slots">${ids.map(slotKnop).join("")}${leeg.map(l=>`<button class="slot leeg" data-leeg="${l}"><span class="plek">${ICO.plus}</span><span><span class="wat">${l}</span><b>${l==="Accent"?"Hemdje eronder?":l==="Bovenlaag"?"Vest erover?":"Kies schoenen"}</b></span><span></span></button>`).join("")}</div>
   ${o.schoenen||o.tip?`<div class="notitie">${o.tip?`<p>${esc(o.tip)}</p>`:""}${o.schoenen?`<p class="mut">${esc(o.schoenen)}</p>`:""}</div>`:""}
   ${S.gedragen.map((g,i)=>[g,i]).filter(([g])=>String(g.nr)===o.nr).map(([g,i])=>`<div class="historie"><span>Gedragen ${g.datum.split("-").reverse().slice(0,2).join("-")} · ${g.klaar?gevoelTekst(g):"nog niet ingevuld"}</span><button data-gi="${i}">${g.klaar?"Pas aan":"Vul in"}</button></div>`).join("")}
   ${tips(werk.stukken).map(t=>`<div class="tip"><b>Tip van de kast</b>${t}</div>`).join("")}
-  ${o.idee?`<button class="secundair" id="houd" style="width:100%;margin-bottom:8px">Bewaar bij mijn outfits</button>`:""}
+  ${o.idee&&!gewijzigd?`<button class="secundair" id="houd" style="width:100%;margin-bottom:8px">Bewaar bij mijn outfits</button>`:""}
   ${gewijzigd?`<button class="secundair" id="nieuw" style="width:100%;margin-bottom:8px">Bewaar als nieuwe combi</button>`:""}
   <button class="primair" id="aan">Trek ik aan</button>
   <div id="wegplek"><button class="link" id="weg">${o.idee?"Dit idee niet meer laten zien":"Verwijder deze outfit"}</button></div>`;
   $("#terug").onclick=()=>{werk=null;tab=van;toon();};
-  app.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>wisselVel(b.dataset.id,id=>{werk.stukken=werk.stukken.map(x=>x===b.dataset.id?id:x).filter(Boolean);laagVoorLaag(nr,van);}));
+  app.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>wisselVel(b.dataset.id,b.dataset.rol,id=>{werk.stukken=werk.stukken.map(x=>x===b.dataset.id?id:x).filter(Boolean);laagVoorLaag(nr,van);}));
   app.querySelectorAll("[data-weg-laag]").forEach(b=>b.onclick=()=>{werk.stukken=werk.stukken.filter(x=>x!==b.dataset.wegLaag);laagVoorLaag(nr,van);});
   app.querySelectorAll("[data-leeg]").forEach(b=>b.onclick=()=>kiesVel(b.dataset.leeg,id=>{werk.stukken.push(id);laagVoorLaag(nr,van);}));
   app.querySelectorAll("[data-gi]").forEach(b=>b.onclick=()=>{const g=S.gedragen[+b.dataset.gi];g.later=false;werk=null;tab="vandaag";markeerMenu();voelde(g);});
-  $("#aan").onclick=()=>{trekAan(o.nr);werk=null;tab="vandaag";toon();};
-  if(o.idee) $("#houd").onclick=()=>{bewaarIdee(o.nr);bewaar();werk=null;melding("Bewaard bij je outfits");tab=van;toon();};
+  $("#aan").onclick=()=>{let nr=o.nr;
+    if(gewijzigd){nr=String(nieuwNr());S.extra.push({nr:+nr,stukken:[...werk.stukken],schoenen:"",tip:"",eigen:true});}
+    trekAan(nr);werk=null;tab="vandaag";toon();};
+  if(o.idee&&!gewijzigd) $("#houd").onclick=()=>{bewaarIdee(o.nr);bewaar();werk=null;melding("Bewaard bij je outfits");tab=van;toon();};
   if(gewijzigd) $("#nieuw").onclick=()=>bewaarVel(werk.stukken,o.schoenen,()=>{werk=null;});
   $("#weg").onclick=()=>{
     $("#wegplek").innerHTML=`<div class="bevestig"><p>${o.idee?"Dit idee weghalen?":"Deze outfit verwijderen?"}</p><div><button class="secundair" id="nee">Laat staan</button><button class="primair" id="ja">Verwijder</button></div></div>`;
@@ -724,9 +735,9 @@ function laagVoorLaag(nr,van){
   };
   scrollTo(0,0);
 }
-function slotKnop(id){ // één laag: tik om te wisselen, kruisje om weg te halen
-  const it=K[id], l=LAAG[it.soort], extra=[labelTekst([id]),labels(id).hak&&it.soort!=="schoenen"?"alleen met hakken":""].filter(Boolean).join(" · ");
-  return `<div class="slot${l==="Accent"?" accent":""}"><button class="slot-hoofd" data-id="${id}" aria-label="${esc(it.naam)} wisselen">${foto(id)}<span><span class="wat">${l}</span><b>${esc(it.naam)}</b><small>${extra||"&nbsp;"}</small></span><span class="wissel">${ICO.wissel}</span></button><button class="slot-weg" data-weg-laag="${id}" aria-label="${esc(it.naam)} weghalen">${ICO.x}</button></div>`;
+function slotKnop(id,_,ids){ // één laag: tik om te wisselen, kruisje om weg te halen
+  const it=K[id], l=rolVan(id,ids), extra=[labelTekst([id]),labels(id).hak&&it.soort!=="schoenen"?"alleen met hakken":""].filter(Boolean).join(" · ");
+  return `<div class="slot${l==="Accent"?" accent":""}"><button class="slot-hoofd" data-id="${id}" data-rol="${l}" aria-label="${esc(it.naam)} wisselen">${foto(id)}<span><span class="wat">${l}</span><b>${esc(it.naam)}</b><small>${extra||"&nbsp;"}</small></span><span class="wissel">${ICO.wissel}</span></button><button class="slot-weg" data-weg-laag="${id}" aria-label="${esc(it.naam)} weghalen">${ICO.x}</button></div>`;
 }
 function tips(ids){ // de kast legt uit wat jouw regels van een combi vinden
   const its=ids.map(id=>K[id]).filter(Boolean), c=context(ids), t=[];
@@ -736,7 +747,7 @@ function tips(ids){ // de kast legt uit wat jouw regels van een combi vinden
   if(regelAan("wijd")&&REGELS.find(r=>r.id==="wijd").verbod(c)) t.push("Wijd met wijd: kies één van de twee getailleerd.");
   if(its.some(i=>i.soort!=="schoenen"&&labels(i.id).hak)&&its.some(i=>i.soort==="schoenen"&&!labels(i.id).hak)) t.push("Dit stuk draag je alleen met hakken.");
   if(nooitSamen(ids)) t.push("Deze combi staat bij jouw eigen regels als 'nooit samen'.");
-  const z=P().zones; const bedekt=its.some(i=>LAAG[i.soort]==="Bovenlaag");
+  const z=P().zones; const bedekt=ids.some(id=>rolVan(id,ids)==="Bovenlaag");
   if(!bedekt&&z.armen==="nee"&&its.some(i=>i.soort!=="hemdje"&&labels(i.id).zichtbaar.includes("armen"))) t.push("Je armen zijn bloot en die bedek je liever. Een vest of bolero erover?");
   return t;
 }
@@ -757,15 +768,15 @@ function outfits(){
 }
 let combiStukken=[];
 function combi(){
-  const ids=gesorteerd(combiStukken), heeft=new Set(ids.map(id=>LAAG[K[id].soort]));
-  const vrij=["Bovenlaag","Top","Accent","Onder","Schoenen"].filter(l=>!heeft.has(l)&&!(l==="Top"&&heeft.has("Basis")));
+  const ids=gesorteerd(combiStukken), heeft=new Set(ids.map(id=>rolVan(id,ids)));
+  const vrij=["Bovenlaag","Top","Accent","Onder","Schoenen"].filter(l=>!heeft.has(l)&&!((l==="Top"||l==="Onder")&&heeft.has("Basis")));
   app.innerHTML=`<button class="terug" id="terug">${ICO.terug}Outfits</button><h1>Nieuwe combi</h1><p class="mut">Vul de lagen die je wilt. Een jurk of jumpsuit kies je bij Top.</p>
   <div class="slots">${ids.map(slotKnop).join("")}${vrij.map(l=>`<button class="slot leeg" data-leeg="${l}"><span class="plek">${ICO.plus}</span><span><span class="wat">${l}</span><b>Kies ${l==="Top"?"een top of jurk":l.toLowerCase()}</b></span><span></span></button>`).join("")}</div>
   ${combiStukken.length?tips(combiStukken).map(t=>`<div class="tip"><b>Tip van de kast</b>${t}</div>`).join(""):""}
   <button class="primair" id="bewaar" ${combiStukken.length<2?"disabled":""}>${combiStukken.length<2?"Kies minstens 2 stuks":"Bewaar deze combi"}</button>`;
   $("#terug").onclick=()=>{tab="outfits";toon();};
   app.querySelectorAll("[data-leeg]").forEach(b=>b.onclick=()=>kiesVel(b.dataset.leeg==="Top"?"TopBasis":b.dataset.leeg,id=>{combiStukken.push(id);combi();}));
-  app.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>wisselVel(b.dataset.id,id=>{combiStukken=combiStukken.map(x=>x===b.dataset.id?id:x).filter(Boolean);combi();}));
+  app.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>wisselVel(b.dataset.id,b.dataset.rol,id=>{combiStukken=combiStukken.map(x=>x===b.dataset.id?id:x).filter(Boolean);combi();}));
   app.querySelectorAll("[data-weg-laag]").forEach(b=>b.onclick=()=>{combiStukken=combiStukken.filter(x=>x!==b.dataset.wegLaag);combi();});
   $("#bewaar").onclick=()=>{if(combiStukken.length>=2) bewaarVel(combiStukken,"",()=>{combiStukken=[];});};
   scrollTo(0,0);
@@ -789,6 +800,7 @@ function kastCheck(){ // stukken die je al een maand niet droeg, en die je niet 
   const dagen=d=>(new Date(vandaagDatum())-new Date(d))/864e5;
   if(dagen(S.start)<30) return [];
   return kastNu().filter(k=>{const l=laatstGedragen(k.id);const later=S.check?.[k.id];
+    if(k.toegevoegd&&dagen(k.toegevoegd)<30) return false;
     return (!l||dagen(l)>=30)&&!(later&&later>vandaagDatum());});
 }
 const TIP_ONLINE=`<div class="tip" style="margin-top:12px"><b>Tip</b>Bestel je online kleding? Maak screenshots van de productfoto's!</div>`;
@@ -804,6 +816,7 @@ function kast(){
   <input type="file" id="bestand" accept="image/*" multiple hidden>
   <div class="seg" role="tablist"><button role="tab" data-w="kast" aria-selected="${w==="kast"}">In mijn kast</button><button role="tab" data-w="labelen" aria-selected="${w==="labelen"}">Nog labelen${open.length?` <b>${open.length}</b>`:""}</button></div>
   ${w==="kast"?`<div class="filters">${groepen.map(([k,t])=>`<button class="pil" data-g="${k}" aria-pressed="${g===k}">${t}</button>`).join("")}</div>
+    ${kastNu().some(k=>g==="alles"||lagenVan(k).includes(g))?"":`<div class="leeg-staat">${g==="alles"?(open.length?"Je foto's staan bij Nog labelen. Geef ze daar de juiste info, dan komen ze hier.":"Je kast is nog leeg. Tik op Kleding toevoegen."):"Hier staat nog niks van deze soort."}</div>`}
     <div class="raster">${opKleur(kastNu().filter(k=>g==="alles"||lagenVan(k).includes(g))).map(k=>`<button class="stuk" data-k="${k.id}" aria-label="${esc(k.naam)}"><img src="${k.foto}" alt="" loading="lazy">${k.kleuren?.[0]?`<i class="stip" style="--k:${(PALET.find(p=>p[0]===k.kleuren[0])||[0,"#888"])[1]}"></i>`:""}</button>`).join("")}</div>`
   :open.length?`<p class="mut" style="margin-bottom:10px">Loop ze één voor één door en geef ze de juiste info. Daarna staan ze in je kast.</p>
     <button class="primair" id="start" style="margin-bottom:12px">Begin met labelen</button>
@@ -812,7 +825,7 @@ function kast(){
   ${!(S.nieuw||[]).length&&!KAST_BASIS.length?TIP_ONLINE:""}`;
   app.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{kast.w=b.dataset.w;kast();});
   if(check){
-    const later=d=>{const t=new Date();t.setDate(t.getDate()+d);(S.check??={})[check.id]=t.toISOString().slice(0,10);};
+    const later=d=>{const t=new Date();t.setDate(t.getDate()+d);(S.check??={})[check.id]=datumVan(t);};
     const gekozen=[];
     app.querySelectorAll("[data-check]").forEach(b=>b.onclick=()=>{const k=b.dataset.check;
       if(k==="ja"){later(30);bewaar();melding("Top, dan blijft hij erin");kast();}
@@ -899,7 +912,7 @@ async function voegToe(files){
       const r={id:await bewaarFoto(blob,"image/jpeg")};
       const los=uitgeknipt?{id:await bewaarFoto(uitgeknipt,"image/png")}:null;
       const id="n"+Date.now().toString(36)+i;
-      S.nieuw.push({id,asset:los?los.id:r.id,origineel:r.id,uitgeknipt:los?los.id:null,kleurAuto:kleur,kleuren:kleur?[kleur]:[],soort:"",pasvorm:"",lengte:"",patroon:false,dragen:[],tags:[],zichtbaar:[],weer:["koud","fris","warm"],hak:false,klaar:false});
+      S.nieuw.push({id,asset:los?los.id:r.id,origineel:r.id,uitgeknipt:los?los.id:null,kleurAuto:kleur,kleuren:kleur?[kleur]:[],soort:"",pasvorm:"",lengte:"",patroon:false,dragen:[],tags:[],zichtbaar:[],weer:["koud","fris","warm"],hak:false,klaar:false,toegevoegd:vandaagDatum()});
       nieuw.push(id);
     }catch(e){melding(`Foto ${i+1} lukte niet. Probeer hem nog een keer.`);}
   }
@@ -950,7 +963,7 @@ function labelStap(id){ // één voor één de juiste info geven
   $("#fotoweg").onclick=()=>{S.wegStuk.push(id);bewaar();syncNieuw();melding("Foto verwijderd",()=>{S.wegStuk=S.wegStuk.filter(x=>x!==id);syncNieuw();});const r=teLabelen();r.length?labelStap(r[0].id):kast();};
   $("#volgende").onclick=()=>{ if(!klaarOk) return;
     const was=n.klaar; n.klaar=true;
-    n.naam=n.naam||`${n.kleuren[0]} ${SOORTNAAM[n.soort]}`.replace(/^./,c=>c.toUpperCase());
+    n.naam=`${n.kleuren[0]} ${SOORTNAAM[n.soort]}`.replace(/^./,c=>c.toUpperCase());
     S.labels[id]={tags:[...n.tags],hak:!!n.hak,dragen:[...n.dragen],accent:n.soort==="hemdje"||n.dragen.includes("onder"),zichtbaar:[...n.zichtbaar],weer:[...n.weer]};
     bewaar(); syncNieuw();
     const r=teLabelen();
@@ -965,7 +978,7 @@ function labelVel(id){ // gevoel en details van een stuk aanpassen
     <img class="groot" src="${it.foto}" alt="">
     <h3>Hoe voelt dit stuk?</h3><p class="mut" style="margin-bottom:8px">Meer mag, niks ook.</p>
     <div class="toggles">${BEHOEFTES.map(([n,t])=>`<button class="toggle" data-t="${n}" aria-pressed="${l.tags.includes(n)}">${t}<i></i></button>`).join("")}</div>
-    <div class="toggles">${["broek","rok"].includes(it.soort)&&!heren()?`<button class="toggle" data-x="hak" aria-pressed="${l.hak}">Alleen met hakken<i></i></button>`:""}</div>
+    <div class="toggles">${isSoort(it,["broek","rok"])&&!heren()?`<button class="toggle" data-x="hak" aria-pressed="${l.hak}">Alleen met hakken<i></i></button>`:""}</div>
     ${it.soort!=="schoenen"?`<h3 style="margin-top:12px">Hoe draag je het?</h3><div class="pillen" style="margin-bottom:8px">${DRAGEN.map(([v,t])=>`<button class="pil" data-dragen="${v}" aria-pressed="${l.dragen.includes(v)}">${t}</button>`).join("")}</div>`:""}
     ${it.soort!=="schoenen"?`<h3 style="margin-top:12px">Wat laat het zien?</h3><div class="pillen" style="margin-bottom:8px">${zones().map(([z,t])=>`<button class="pil" data-z="${z}" aria-pressed="${l.zichtbaar.includes(z)}">${t}</button>`).join("")}</div>`:""}
     <h3 style="margin-top:12px">Voor welk weer?</h3><div class="pillen" style="margin-bottom:8px">${WEER.map(([w,t])=>`<button class="pil" data-weer="${w}" aria-pressed="${l.weer.includes(w)}">${t}</button>`).join("")}</div>
@@ -977,10 +990,12 @@ function labelVel(id){ // gevoel en details van een stuk aanpassen
     document.querySelectorAll("[data-dragen]").forEach(b=>b.onclick=()=>{const v=b.dataset.dragen,i=l.dragen.indexOf(v);i>-1?l.dragen.splice(i,1):l.dragen.push(v);l.accent=it.soort==="hemdje"||l.dragen.includes("onder");teken();});
     document.querySelectorAll("[data-weer]").forEach(b=>b.onclick=()=>{const w=b.dataset.weer,i=l.weer.indexOf(w);if(i>-1&&l.weer.length>1)l.weer.splice(i,1);else if(i<0)l.weer.push(w);teken();});
     document.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const z=b.dataset.z,i=l.zichtbaar.indexOf(z);i>-1?l.zichtbaar.splice(i,1):l.zichtbaar.push(z);teken();});
-    if(zelf) $("#alles").onclick=()=>{sluit();labelStap(id);};
+    if(zelf) $("#alles").onclick=()=>{S.labels[id]=l;const n=S.nieuw.find(x=>x.id===id);Object.assign(n,{tags:[...l.tags],hak:!!l.hak,dragen:[...l.dragen],zichtbaar:[...l.zichtbaar],weer:[...l.weer]});bewaar();sluit();labelStap(id);};
     $("#verwijder").onclick=()=>{$("#stukweg").innerHTML=`<div class="bevestig"><p>${esc(it.naam)} verwijderen? Outfits met dit stuk verliezen deze laag.</p><div><button class="secundair" id="nee">Laat staan</button><button class="primair" id="ja">Verwijder</button></div></div>`;
       $("#nee").onclick=teken; $("#ja").onclick=()=>{S.wegStuk.push(id);bewaar();sluit();kast();melding("Verwijderd uit je kast",()=>{S.wegStuk=S.wegStuk.filter(x=>x!==id);});};};
-    $("#klaar").onclick=()=>{S.labels[id]=l;bewaar();_ideeCache=null;sluit();kast();};
+    $("#klaar").onclick=()=>{S.labels[id]=l;const n=(S.nieuw||[]).find(x=>x.id===id);
+      if(n) Object.assign(n,{tags:[...l.tags],hak:!!l.hak,dragen:[...l.dragen],zichtbaar:[...l.zichtbaar],weer:[...l.weer]});
+      bewaar();syncNieuw();_ideeCache=null;sluit();kast();};
   };
   teken();
 }
@@ -1096,7 +1111,7 @@ function uitleg(onderwerp,van="ik"){
       <li><b>De website zelf</b> staat bij GitHub. Zoals bij elke website kan GitHub zien dat de pagina wordt geopend, maar niet wat je in Ta-daa doet.</li>
       <li><b>Nieuwe telefoon?</b> Maak eerst een back-up, anders ben je je kast kwijt.</li>
       <li><b>Alles wissen?</b> Gebruik "Verwijder al mijn gegevens". Verwijder je Ta-daa of je browsergegevens, dan is alles ook weg.</li></ul></div>`,
-    backup:`<h1>Back-up</h1><div class="blok"><h2>Back-up maken</h2><p class="mut">Je krijgt één bestand met je hele kast, inclusief foto's. Bewaar het op een veilige plek, bijvoorbeeld in je bestanden of in iCloud.</p><button class="primair" id="maak">Maak een back-up</button></div>
+    backup:`<h1>Back-up</h1><div class="blok"><h2>Back-up maken</h2><p class="mut">Je krijgt één bestand met je hele kast, inclusief foto's. Kies daarna <b>Bewaar in Bestanden</b>, bijvoorbeeld in iCloud Drive. Dan heb je hem ook op een nieuwe telefoon.</p><button class="primair" id="maak">Maak een back-up</button></div>
       <div class="blok"><h2>Back-up terugzetten</h2><p class="mut">Dit vervangt wat nu in Ta-daa staat door de kast uit het bestand.</p><input type="file" id="terugbestand" accept=".json,application/json" hidden><button class="secundair" id="kies" style="width:100%">Kies een back-upbestand</button></div>`,
     wissen:`<h1>Verwijder al mijn gegevens</h1><div class="blok"><p>Hiermee wis je alles: je foto's, je kleding, je outfits en wat je bij Dit ben ik hebt ingevuld. Dit kan niet ongedaan worden. Wil je je kast bewaren? Maak dan eerst een back-up.</p>
       <div class="bevestig" style="background:var(--bg)"><p>Weet je het zeker?</p><div><button class="secundair" id="nee">Nee, bewaar alles</button><button class="primair gevaar" id="ja">Ja, wis alles</button></div></div></div>`};
@@ -1111,7 +1126,10 @@ async function maakBackup(){
   melding("Back-up maken…");
   const fotos={}; for(const a of Object.keys(FOTO_URL)){const b=await idb("readonly",s=>s.get(a.slice(4))); if(b) fotos[a]=await naarDataUrl(b);}
   const bestand=new Blob([JSON.stringify({app:"ta-daa",versie:1,datum:vandaagDatum(),staat:S,fotos})],{type:"application/json"});
-  const a=document.createElement("a"); a.href=URL.createObjectURL(bestand); a.download=`ta-daa-backup-${vandaagDatum()}.json`;
+  const naam=`ta-daa-backup-${vandaagDatum()}.json`, f=new File([bestand],naam,{type:"application/json"});
+  try{ if(navigator.canShare?.({files:[f]})){ await navigator.share({files:[f],title:naam}); melding("Back-up gemaakt. Bewaar het bestand goed."); return; } }
+  catch(e){ if(e&&e.name==="AbortError"){ melding("Back-up niet bewaard"); return; } }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(f); a.download=naam;
   document.body.appendChild(a); a.click(); a.remove(); melding("Back-up gemaakt. Bewaar het bestand goed.");
 }
 async function zetTerug(bestand){
@@ -1137,7 +1155,7 @@ const esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const foto=id=>K[id]?`<img src="${K[id].foto}" alt="${esc(K[id].naam)}" loading="lazy">`:"";
 const groet=()=>{const u=new Date().getHours();return (u<12?"Goeiemorgen":u<18?"Goeiemiddag":"Goeienavond")+" leukerd!";};
 function labelTekst(ids){const s=new Set(ids.flatMap(tags));return BEHOEFTES.filter(b=>s.has(b[0])).map(b=>b[1].toLowerCase()).join(" · ");}
-const gesorteerd=ids=>[...ids].sort((a,b)=>VOLGORDE.indexOf(LAAG[K[a]?.soort])-VOLGORDE.indexOf(LAAG[K[b]?.soort]));
+const gesorteerd=ids=>[...ids].sort((a,b)=>VOLGORDE.indexOf(rolVan(a,ids))-VOLGORDE.indexOf(rolVan(b,ids)));
 function melding(t,ongedaan){ // korte melding onderin, eventueel met 'Ongedaan maken'
   const m=$("#melding"); m.innerHTML=esc(t)+(ongedaan?'<button id="ongedaan">Ongedaan maken</button>':"");
   m.hidden=false; clearTimeout(m._t); m._t=setTimeout(()=>m.hidden=true,ongedaan?5000:2400);
@@ -1150,8 +1168,8 @@ function opties(laag){ // kledingstukken die op deze laag passen ("TopBasis" = t
   const lagen=laag==="TopBasis"?["Top","Basis"]:[laag];
   return kastNu().filter(k=>lagenVan(k).some(l=>lagen.includes(l))&&pastWeer(k));
 }
-function wisselVel(id,klaar){
-  const laag=LAAG[K[id].soort];
+function wisselVel(id,rol,klaar){
+  const laag=rol||LAAG[K[id].soort];
   vel(`<div class="vel-kop"><h2>Wissel ${laag.toLowerCase()}</h2><button class="sluit" aria-label="Sluiten">${ICO.x}</button></div>
   <div class="kies-rij">${opties(laag).map(k=>`<button data-k="${k.id}" aria-pressed="${k.id===id}"><img src="${k.foto}" alt=""><span>${esc(k.naam)}</span></button>`).join("")}</div>
   `);
