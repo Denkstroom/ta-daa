@@ -47,6 +47,8 @@
 
 /* basis */
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{touch-action:manipulation;-webkit-text-size-adjust:100%}   /* twee keer snel tikken = twee tikken, niet inzoomen */
+button,a,input,select{touch-action:manipulation}
 html,body{height:100%}
 body{background:var(--bg);color:var(--inkt);font:16px/1.45 var(--tekst);margin:0}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
@@ -99,7 +101,17 @@ h3{font-size:15px;margin:0 0 8px;font-weight:700}
 .logo{font-size:40px;font-weight:800;letter-spacing:-.03em;color:var(--accent);margin:18px 0 6px}
 .stappen{list-style:none;counter-reset:stap;padding:0;margin:18px 0}
 .stappen li{counter-increment:stap;display:grid;grid-template-columns:34px 1fr;gap:4px 10px;background:var(--vlak);border-radius:16px;padding:12px;margin-bottom:8px}
-.wat{font-size:17px;margin:6px 0 4px}
+.wat{font-size:17px;margin:6px 0 8px}
+.app-icoon{width:84px;height:84px;border-radius:20px;margin:16px auto 10px;display:block;box-shadow:0 8px 20px -8px rgba(0,0,0,.4)}
+.welkom-kop{color:var(--accent);font-size:26px}
+.stappen.compact li{padding:10px 12px;align-items:center}.stappen.compact span:empty{display:none}.stappen.compact li::before{grid-row:auto}
+#tour{position:fixed;inset:0;z-index:40}
+.tour-gat{position:fixed;border-radius:16px;box-shadow:0 0 0 3px var(--accent),0 0 0 9999px rgba(8,16,18,.74);pointer-events:none;transition:all .2s ease}
+.tour-wolk{position:fixed;left:16px;right:16px;max-width:420px;margin:0 auto;background:var(--vlak);border:3px solid var(--accent);border-radius:20px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.tour-wolk h3{font-size:18px;margin:6px 0 4px}.tour-wolk p{margin:0 0 6px}
+.tour-label{display:inline-block;background:var(--accent);color:var(--op-accent);font-weight:700;font-size:12px;border-radius:8px;padding:1px 8px;transform:rotate(-2deg)}
+.tour-nav{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}.tour-nav .primair{width:auto;padding:11px 18px}.tour-nav .link{margin:0}
+@media (prefers-reduced-motion:reduce){.tour-gat{transition:none}}
 .stappen li::before{content:counter(stap);grid-row:span 2;width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--op-accent);display:grid;place-items:center;font-weight:700}
 .stappen span{color:var(--mut);font-size:14px}
 .kort{margin:0;padding-left:20px;font-size:15px}.kort li{margin-bottom:8px}
@@ -247,6 +259,7 @@ nav button[aria-current="page"]::after{content:"";display:block;width:18px;heigh
 </div></nav>
 <div id="vel-plek"></div>
 <div class="melding" id="melding" role="status" hidden></div>
+<div id="tour" hidden></div>
 
 <script>window.TADAA_SITE=true;</script>
 <script>
@@ -544,8 +557,8 @@ function ik(){
     <span class="mut">met</span><select id="nooit-b" aria-label="Tweede kleur of kledingstuk"><option value="">Kies…</option><optgroup label="Kleuren">${opties.filter(o=>o[0].startsWith("k:")).map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</optgroup><optgroup label="Kledingstukken">${opties.filter(o=>o[0].startsWith("s:")).map(o=>`<option value="${o[0]}">${esc(o[1])}</option>`).join("")}</optgroup></select></div>
     <button class="secundair" id="nooit-voeg" style="width:100%">Voeg regel toe</button></div>
   ${SITE?`<div class="blok"><h2>Over Ta-daa</h2>
-    ${[["werkt","Hoe werkt Ta-daa?"],["scherm","Zet Ta-daa op je beginscherm"],["privacy","Privacy: waar blijven je gegevens?"],["backup","Back-up maken of terugzetten"],["wissen","Verwijder al mijn gegevens"]].map(([k,t])=>`<button class="regel" data-uitleg="${k}"><span>${t}</span><span class="mut">›</span></button>`).join("")}</div>`:""}`;
-  app.querySelectorAll("[data-uitleg]").forEach(b=>b.onclick=()=>uitleg(b.dataset.uitleg));
+    ${[["rondleiding","Uitleg nog eens bekijken"],["werkt","Hoe werkt Ta-daa?"],["scherm","Zet Ta-daa op je beginscherm"],["privacy","Privacy: waar blijven je gegevens?"],["backup","Back-up maken of terugzetten"],["wissen","Verwijder al mijn gegevens"]].map(([k,t])=>`<button class="regel" data-uitleg="${k}"><span>${t}</span><span class="mut">›</span></button>`).join("")}</div>`:""}`;
+  app.querySelectorAll("[data-uitleg]").forEach(b=>b.onclick=()=>b.dataset.uitleg==="rondleiding"?startTour():uitleg(b.dataset.uitleg));
   const zet=f=>{S.profiel=p;f(p);bewaar();_ideeCache=null;const y=scrollY;ik();scrollTo(0,y);};
   app.querySelectorAll("[data-afd]").forEach(b=>b.onclick=()=>zet(p=>p.afdeling=b.dataset.afd));
   app.querySelectorAll("[data-zone]").forEach(b=>b.onclick=()=>zet(p=>{const z=b.dataset.zone;p.zones[z]=STANDEN[(STANDEN.indexOf(mag(z))+1)%3];}));
@@ -931,32 +944,55 @@ const WAT_IS_TADAA=`<p class="wat">Met deze app weet je wat je in je kast hebt h
 const moetEerstBeginscherm=()=>{try{return SITE&&!isApp()&&!localStorage.getItem("tadaa-browser");}catch(e){return false;}};
 function beginschermStappen(){
   const stap=(n,t)=>`<li><b>${n}</b><span>${t}</span></li>`;
-  if(isIOS()) return `<ol class="stappen">${stap("Tik op Deel","Het vierkantje met de pijl omhoog. Niet te zien? Tik eerst op ···.")}${stap("Kies Zet op beginscherm","Tik daarna op Voeg toe.")}${stap("Open Ta-daa vanaf je beginscherm","Daar begint de uitleg van de app.")}</ol>`;
-  if(isAndroid()) return `<ol class="stappen">${stap("Tik op ⋮","De drie puntjes rechtsboven in Chrome.")}${stap("Kies App installeren","Of: Toevoegen aan startscherm.")}${stap("Open Ta-daa vanaf je startscherm","Daar begint de uitleg van de app.")}</ol>`;
-  return `<ol class="stappen">${stap("Open deze pagina op je telefoon","Ta-daa is gemaakt voor je telefoon, daar maak je ook de foto's.")}${stap("Zet hem op je beginscherm","iPhone: Deel → Zet op beginscherm. Android: ⋮ → App installeren.")}${stap("Open Ta-daa vanaf je beginscherm","Daar begint de uitleg van de app.")}</ol>`;
+  if(isIOS()) return `<ol class="stappen compact">${stap("Tik op Deel","(of eerst op ···)")}${stap("Kies Zet op beginscherm","")}${stap("Open Ta-daa vanaf je beginscherm","")}</ol>`;
+  if(isAndroid()) return `<ol class="stappen compact">${stap("Tik op ⋮ rechtsboven","")}${stap("Kies App installeren","")}${stap("Open Ta-daa vanaf je startscherm","")}</ol>`;
+  return `<ol class="stappen compact">${stap("Open deze pagina op je telefoon","")}${stap("Zet hem op je beginscherm","")}${stap("Open Ta-daa vanaf je beginscherm","")}</ol>`;
 }
 function beginscherm(){
-  app.innerHTML=`<div class="midden"><div class="logo">Ta-daa!</div><h1>Hoi, welkom bij Ta-daa!</h1>${WAT_IS_TADAA}</div>
-  <div class="blok"><h2>Zet Ta-daa eerst op je beginscherm</h2><p class="mut">Dan werkt hij als een echte app en blijft je kast bewaard.${isIOS()?" Op een iPhone krijgt de app op je beginscherm een eigen opslag: wat je hier in Safari invult, ziet die app niet.":""}</p></div>
+  app.innerHTML=`<div class="midden"><img class="app-icoon" src="icon-192.png" alt=""><h1 class="welkom-kop">Hoi, welkom bij Ta-daa!</h1>
+    <p class="wat">Weet wat je in je kast hebt hangen, en krijg verrassende outfits. Alles blijft op je telefoon.</p>
+    <p class="mut">Zet Ta-daa eerst op je beginscherm. Dan werkt hij als een echte app en blijft je kast bewaard.</p></div>
   ${beginschermStappen()}
   <button class="link" id="browser">Liever in de browser gebruiken</button>`;
   $("#browser").onclick=()=>{try{localStorage.setItem("tadaa-browser","1");}catch(e){} toon();};
   scrollTo(0,0);
 }
+const TOUR=[ // wijst op de schermen zelf aan wat je doet
+  {tab:"kast",doel:"#plus",kop:"Voeg je kleding toe",tekst:"Eén stuk per foto, liefst op een effen laken of tegen een muur. Meer foto's tegelijk mag."},
+  {tab:"kast",doel:'[data-w="labelen"]',kop:"Vertel per stuk wat het is",tekst:"Je nieuwe foto's komen hier. Tik ze één voor één aan: wat het is, de kleur, voor welk weer en hoe het voelt."},
+  {tab:"ik",doel:'nav [data-tab="ik"]',kop:"Vertel wie je bent",tekst:"Kies wat je graag laat zien en welke regels je wilt. Ta-daa houdt er rekening mee."},
+  {tab:"vandaag",doel:'nav [data-tab="vandaag"]',kop:"Laat je verrassen",tekst:"Tik op het weer en waar je zin in hebt, Ta-daa stelt een outfit voor."},
+  {tab:"outfits",doel:'nav [data-tab="outfits"]',kop:"Vertel hoe het voelde",tekst:"Na het dragen vraagt Ta-daa hoe het voelde. Eén tik is genoeg. Je outfits en favorieten staan hier."}];
+let TS=-1;
+function startTour(){ TS=0; tekenTour(); }
+function tourVolgende(klaar){
+  if(klaar||TS>=TOUR.length-1){ TS=-1; S.welkom=true; bewaar(); $("#tour").hidden=true; $("#tour").innerHTML=""; tab="kast"; kast.w="kast"; toon(); melding("Veel plezier met Ta-daa!"); return; }
+  TS++; tekenTour();
+}
+function tekenTour(){
+  const st=TOUR[TS]; tab=st.tab; if(st.tab==="kast") kast.w="kast"; toon();
+  const el=document.querySelector(st.doel), box=$("#tour"); if(!el){ tourVolgende(); return; }
+  const r=el.getBoundingClientRect(), pad=6, H=innerHeight, laatste=TS===TOUR.length-1;
+  box.hidden=false;
+  box.innerHTML=`<div class="tour-gat" style="top:${r.top-pad}px;left:${r.left-pad}px;width:${r.width+2*pad}px;height:${r.height+2*pad}px"></div>
+    <div class="tour-wolk" role="dialog" aria-modal="true" aria-label="${esc(st.kop)}">
+      <p class="tour-label">Uitleg ${TS+1}/${TOUR.length}</p><h3>${esc(st.kop)}</h3><p>${esc(st.tekst)}</p>
+      <div class="tour-nav">${laatste?"<span></span>":'<button class="link" id="tour-over">Overslaan</button>'}<button class="primair" id="tour-verder">${laatste?"Aan de slag!":"Volgende"}</button></div></div>`;
+  const w=box.querySelector(".tour-wolk"), h=w.offsetHeight;
+  w.style.top=(r.bottom+pad+16+h<=H-12?r.bottom+pad+16:Math.max(12,r.top-pad-16-h))+"px";
+  $("#tour-verder").onclick=()=>tourVolgende(laatste);
+  if($("#tour-over")) $("#tour-over").onclick=()=>tourVolgende(true);
+  $("#tour-verder").focus({preventScroll:true});
+}
+addEventListener("resize",()=>{if(TS>=0) tekenTour();});
 const STAPPEN=[
   ["Voeg je kleding toe","Eén stuk per foto, liefst op een effen laken of tegen een muur. Meer foto's tegelijk mag."],
   ["Vertel per stuk wat het is","Wat het is, de kleur, voor welk weer en hoe het voelt. Ta-daa doet alvast een voorstel voor de kleur."],
   ["Vertel wie je bent","Bij Dit ben ik kies je wat je graag laat zien en welke regels je wilt."],
-  ["Laat je verrassen","Tik op het weer en waar je zin in hebt, en Ta-daa stelt een outfit voor. Dat hoeft niet elke dag, en niet per se 's ochtends. Niks voor jou? Tik op Andere."],
+  ["Laat je verrassen","Tik op het weer en waar je zin in hebt, Ta-daa stelt een outfit voor."],
   ["Vertel hoe het voelde","Eén tik na het dragen is genoeg. Zo leert Ta-daa wat bij jou past."]];
 const stappenHtml=()=>`<ol class="stappen genummerd">${STAPPEN.map(([t,u])=>`<li><b>${t}</b><span>${u}</span></li>`).join("")}</ol>`;
-function welkom(){
-  app.innerHTML=`<div class="midden"><div class="logo">Ta-daa!</div><h1>Zo werkt Ta-daa</h1>${WAT_IS_TADAA}</div>
-  ${stappenHtml()}
-  <button class="primair" id="begin">Laten we beginnen</button>`;
-  $("#begin").onclick=()=>{S.welkom=true;bewaar();tab="kast";kast.w="kast";toon();};
-  scrollTo(0,0);
-}
+function welkom(){ setTimeout(startTour,50); app.innerHTML=""; }
 function uitleg(onderwerp,van="ik"){
   const terug=`<button class="terug" id="terug">${ICO.terug}Dit ben ik</button>`;
   const T={
@@ -1049,7 +1085,7 @@ let tab="vandaag";
 const SCHERMEN={vandaag,outfits,kast,ik};
 const markeerMenu=()=>{document.querySelectorAll("nav [data-tab]").forEach(b=>b.setAttribute("aria-current",b.dataset.tab===tab?"page":"false"));
   const k=document.querySelector('nav [data-tab="kast"]'); k.classList.toggle("stip",kastCheck().length>0||teLabelen().length>0);};
-function toon(scroll=true){ markeerMenu(); SCHERMEN[tab](); document.querySelector("nav").hidden=moetEerstBeginscherm()||(SITE&&!S.welkom&&tab==="vandaag"); if(scroll) scrollTo(0,0); }
+function toon(scroll=true){ markeerMenu(); SCHERMEN[tab](); document.querySelector("nav").hidden=moetEerstBeginscherm(); if(scroll) scrollTo(0,0); }
 document.querySelectorAll("nav [data-tab]").forEach(b=>b.onclick=()=>{werk=null;tab=b.dataset.tab;toon();});
 opstarten();
 </script>
