@@ -309,7 +309,7 @@ const K=Object.fromEntries(KAST.map(k=>[k.id,k]));   // snel opzoeken op id
 const BEHOEFTES=[["comfy","Comfortabel"],["sexy","Sexy"],["stoer","Stoer"]];   // warm zit in het weer
 const LAAG={vest:"Bovenlaag",kimono:"Bovenlaag","jasje/blazer":"Bovenlaag",blouse:"Top","shirt/top":"Top",trui:"Top",jurk:"Basis",jumpsuit:"Basis",hemdje:"Accent",broek:"Onder",rok:"Onder",schoenen:"Schoenen"};
 const VOLGORDE=["Bovenlaag","Basis","Top","Accent","Onder","Schoenen"];
-const SOORTEN=[["vest","Vest"],["kimono","Kimono"],["blouse","Blouse"],["shirt/top","Shirt of top"],["trui","Trui"],["hemdje","Hemdje"],["broek","Broek"],["rok","Rok"],["jurk","Jurk"],["jumpsuit","Jumpsuit"],["schoenen","Schoenen"]];
+const SOORTEN=[["vest","Vest"],["blouse","Blouse"],["shirt/top","Shirt of top"],["trui","Trui"],["hemdje","Hemdje"],["broek","Broek"],["rok","Rok"],["jurk","Jurk"],["jumpsuit","Jumpsuit"],["schoenen","Schoenen"]];
 const SOORTNAAM=Object.fromEntries(SOORTEN.map(([k,t])=>[k,t.toLowerCase()]));
 const PALET=[["zwart","#1b1b1b"],["wit","#f5f5f2"],["grijs","#8a8f93"],["taupe","#8a7a70"],["bruin","#5a3e2e"],["ecru","#ece3cc"],["geel","#f0c230"],["limoen","#c9d82a"],["oranje","#e57a32"],["rood","#c62a2f"],["bordeaux","#6e1a2a"],["lichtroze","#f2c4cf"],["roze","#ef7f9a"],["fuchsia","#d1197a"],["lila","#b59ad8"],["paarsgrijs","#8b7f99"],["paars","#5b2bb0"],["aubergine","#4a1f3d"],["lichtblauw","#a9c6e4"],["blauw","#2f6fd6"],["kobalt","#1f45c9"],["donkerblauw","#1f2a4a"],["denim","#5b7aa0"],["turquoise","#1fb3b0"],["petrol","#0f5c63"],["petrolblauw","#1d5878"],["smaragd","#0e8a63"],["zeegroen","#4f9a86"],["salie","#a3b49d"],["olijf","#6b6a2e"],["donkergroen","#2f4a3a"]];
 const FEL=new Set(["fuchsia","kobalt","blauw","turquoise","smaragd","rood","roze","paars","lila","limoen","geel","oranje","zeegroen","bordeaux"]);
@@ -371,6 +371,8 @@ const fotoSrc=a=>!a?"":a.startsWith("idb:")?(FOTO_URL[a]||""):"/_blob/"+a;
 function zonderAutomatisch(){ // stukken die nog gelabeld moeten worden: originele foto en geen geraden kleur
   let anders=false;
   for(const n of S.nieuw||[]){
+    if(n.soort==="kimono"||(n.ook||[]).includes("kimono")){ // kimono = vest (1.14)
+      const s=[...new Set(soortenVan(n).map(x=>x==="kimono"?"vest":x))]; n.soort=s[0]; n.ook=s.slice(1); if(n.naam) n.naam=n.naam.replace(/kimono$/i,"vest"); anders=true; }
     if(n.klaar) continue;
     if(n.uitgeknipt&&n.origineel&&n.asset!==n.origineel){n.asset=n.origineel;anders=true;}
     if(n.kleurAuto&&n.kleuren.length===1&&n.kleuren[0]===n.kleurAuto){n.kleuren=[];anders=true;}
