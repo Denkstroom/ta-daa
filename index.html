@@ -176,6 +176,18 @@ nav button.stip::before{content:"";position:absolute;top:6px;right:calc(50% - 16
 
 /* Outfits */
 .outfit-raster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.stapel{position:relative;height:min(56vh,470px);margin-bottom:12px}
+.stapel .tafel{position:absolute;inset:0;height:auto;margin:0}
+.kaartje{touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;will-change:transform}
+.kaartje.achter{transform:scale(.95) translateY(10px);opacity:.55;pointer-events:none}
+.stempel{position:absolute;top:18px;z-index:20;padding:6px 12px;border-radius:12px;font-weight:800;font-size:15px;pointer-events:none;border:2.5px solid}
+.stempel.ja{left:16px;color:var(--accent);border-color:var(--accent);opacity:var(--ja,0);transform:rotate(-8deg)}
+.stempel.nee{right:16px;color:#ff8a7a;border-color:#ff8a7a;opacity:var(--nee,0);transform:rotate(8deg)}
+.knoppen.veeg{display:flex;justify-content:space-between;align-items:center}.knoppen.veeg .rond{width:58px;height:58px;padding:0;border-radius:50%;display:grid;place-items:center;flex:none}
+.knoppen.veeg .ico{width:24px;height:24px}
+.open-hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:6px;white-space:nowrap;
+  background:var(--vlak);color:var(--inkt);border-radius:99px;padding:8px 14px;font-size:13.5px;font-weight:700;box-shadow:0 6px 16px -8px rgba(0,0,0,.6);pointer-events:none}
+.open-hint .ico{width:17px;height:17px}
 .kaart{background:var(--vlak);border-radius:18px;padding:6px;text-align:left;width:100%}
 .kaart .lagen-foto{gap:4px}.kaart .lagen-foto img{border-radius:11px}
 .kaart .lagen-foto img:nth-child(n+5){display:none}
@@ -781,11 +793,39 @@ function outfits(){
   app.innerHTML=`<div class="kop"><h1>Mijn outfits</h1><button class="toevoeg" id="nieuwecombi">${ICO_EXTRA.lagen}Nieuwe combi</button></div>
   <div class="filters">${[["mijn","Mijn outfits"],["fav","Favorieten"],["idee","Ideeën"]].map(([k,t])=>`<button class="pil" data-f="${k}" aria-pressed="${f===k}">${t} <span class="tel">${lijst.filter(o=>hoort(o,k)).length}</span></button>`).join("")}</div>
   ${f==="fav"&&!lijst.some(o=>hoort(o,"fav"))?'<p class="mut" style="margin-bottom:10px">Outfits waarbij je na het dragen "Helemaal mij" kiest, komen hier vanzelf.</p>':""}
-  ${f==="idee"?'<p class="mut" style="margin-bottom:10px">De kast bedenkt deze combi’s zelf, met jouw regels. Tik erop: bewaar wat je leuk vindt, haal de rest weg.</p>':""}
-  <div class="outfit-raster">${l.map(o=>`<button class="kaart" data-o="${o.nr}"><div class="mini-pol">${gesorteerd(o.stukken).filter(id=>K[id]).slice(0,4).map((id,i)=>`<span style="transform:rotate(${[-3,2,3,-2][i]}deg)"><img src="${K[id].foto}" alt=""></span>`).join("")}</div><div class="onder"><span>${labelTekst(o.stukken)}</span>${favoriet(o)?'<span class="etiket">favoriet</span>':o.idee?'<span class="etiket">idee</span>':""}</div></button>`).join("")||(f==="fav"?"":`<div class="leeg-staat">Hier staat nog niks. Bewaar een idee of tik op Nieuwe combi.</div>`)}</div>`;
+  ${f==="idee"?ideeStapel(l):`<div class="outfit-raster">${l.map(o=>`<button class="kaart" data-o="${o.nr}"><div class="mini-pol">${gesorteerd(o.stukken).filter(id=>K[id]).slice(0,4).map((id,i)=>`<span style="transform:rotate(${[-3,2,3,-2][i]}deg)"><img src="${K[id].foto}" alt=""></span>`).join("")}</div></button>`).join("")||(f==="fav"?"":`<div class="leeg-staat">Hier staat nog niks. Bewaar een idee of tik op Nieuwe combi.</div>`)}</div>`}`;
+  if(f==="idee") stapelGedrag(l);
   app.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{outfits.f=b.dataset.f;outfits();});
   app.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>laagVoorLaag(b.dataset.o,"outfits"));
   $("#nieuwecombi").onclick=()=>combi();
+}
+// Ideeën als kaartjes: veeg naar rechts = bewaren, naar links = weg, tik = van dichtbij bekijken
+function ideeStapel(l){
+  if(!l.length) return `<div class="leeg-staat"><b>Alle ideeën bekeken</b><br>Voeg meer kleding toe of zet een regel uit bij Dit ben ik, dan bedenkt de kast nieuwe.</div>`;
+  return `<div class="stapel">${l[1]?`<div class="tafel kaartje achter" aria-hidden="true">${polaroids(l[1].stukken)}</div>`:""}
+    <button class="tafel kaartje" id="kaartje" aria-label="Bekijk dit idee van dichtbij"><span class="stempel ja">Bewaren</span><span class="stempel nee">Weg</span>${polaroids(l[0].stukken)}<span class="open-hint">${ICO.wissel}Bekijk of wissel een stuk</span></button></div>
+  <div class="knoppen veeg"><button class="secundair rond" id="idee-nee" aria-label="Weg, niet meer laten zien">${ICO.x}</button><span class="mut">${l.length} ${l.length===1?"idee":"ideeën"}</span><button class="primair rond" id="idee-ja" aria-label="Bewaren bij mijn outfits"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>`;
+}
+function stapelGedrag(l){
+  const k=$("#kaartje"); if(!k) return; const o=l[0];
+  const klaar=ja=>{
+    k.style.transition="transform .25s ease-out,opacity .25s"; k.style.transform=`translateX(${ja?120:-120}%) rotate(${ja?18:-18}deg)`; k.style.opacity="0";
+    setTimeout(()=>{
+      if(ja){const nr=bewaarIdee(o.nr);bewaar();_ideeCache=null;outfits();melding("Bewaard bij je outfits",()=>{S.extra=S.extra.filter(x=>String(x.nr)!==String(nr));});}
+      else{S.wegIdee.push(o.sleutel);bewaar();_ideeCache=null;outfits();melding("Weg",()=>{S.wegIdee=S.wegIdee.filter(x=>x!==o.sleutel);});}
+    },220);
+  };
+  let x0=null,y0=0,dx=0,sleept=false;
+  k.addEventListener("pointerdown",e=>{x0=e.clientX;y0=e.clientY;dx=0;sleept=false;k.style.transition="none";});
+  k.addEventListener("pointermove",e=>{ if(x0===null) return; dx=e.clientX-x0;
+    if(!sleept&&Math.abs(dx)>8&&Math.abs(dx)>Math.abs(e.clientY-y0)){sleept=true;try{k.setPointerCapture(e.pointerId);}catch(_){}}
+    if(sleept){k.style.transform=`translateX(${dx}px) rotate(${dx/18}deg)`;k.style.setProperty("--ja",Math.max(0,Math.min(1,dx/90)));k.style.setProperty("--nee",Math.max(0,Math.min(1,-dx/90)));}});
+  const los=()=>{ if(x0===null) return; x0=null;
+    if(sleept&&Math.abs(dx)>90) return klaar(dx>0);
+    k.style.transition="transform .2s ease-out"; k.style.transform=""; k.style.setProperty("--ja",0); k.style.setProperty("--nee",0); };
+  k.addEventListener("pointerup",los); k.addEventListener("pointercancel",los);
+  k.addEventListener("click",e=>{ if(sleept){e.preventDefault();return;} laagVoorLaag(o.nr,"outfits"); });
+  $("#idee-ja").onclick=()=>klaar(true); $("#idee-nee").onclick=()=>klaar(false);
 }
 let combiStukken=[];
 function combi(){
