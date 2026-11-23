@@ -225,8 +225,12 @@ input[type=range]{width:100%;margin:8px 0 0;accent-color:var(--accent);height:28
 .voortgang{height:4px;background:var(--lijn);border-radius:4px;margin:4px 0 12px}
 .voortgang i{display:block;height:100%;background:var(--accent);border-radius:4px}
 .groep{margin-bottom:16px}
-.swatches{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
-.swatch{aspect-ratio:1;border-radius:50%;background:var(--k);border:1px solid rgba(0,0,0,.12);display:grid;place-items:center;min-height:36px}
+.swatches{display:flex;flex-direction:column;gap:9px}
+.kleurrij{display:grid;grid-template-columns:78px 1fr;align-items:center;gap:6px}
+.kleurrij>span{font-size:12px;font-weight:600;color:var(--mut)}
+.kleurrij>div{display:flex;gap:8px;flex-wrap:wrap}.kleurrij .swatch{width:36px;flex:none}
+.gekozen{margin:10px 0 0;font-size:14px}.gekozen b{font-weight:700}
+.swatch{aspect-ratio:1;border-radius:50%;background:var(--k);border:0;box-shadow:inset 0 0 0 1px rgba(140,150,150,.45);display:grid;place-items:center;min-height:36px}
 .swatch[aria-pressed="true"]{outline:3px solid var(--inkt);outline-offset:2px}
 .swatch b{background:var(--vlak);color:var(--inkt);border-radius:50%;width:18px;height:18px;font-size:11px;display:grid;place-items:center}
 .breek{flex-basis:100%;height:0}
@@ -312,6 +316,9 @@ const VOLGORDE=["Bovenlaag","Basis","Top","Accent","Onder","Schoenen"];
 const SOORTEN=[["vest","Vest"],["blouse","Blouse"],["shirt/top","Shirt of top"],["trui","Trui"],["hemdje","Hemdje"],["broek","Broek"],["rok","Rok"],["jurk","Jurk"],["jumpsuit","Jumpsuit"],["schoenen","Schoenen"]];
 const SOORTNAAM=Object.fromEntries(SOORTEN.map(([k,t])=>[k,t.toLowerCase()]));
 const PALET=[["zwart","#1b1b1b"],["wit","#f5f5f2"],["grijs","#8a8f93"],["taupe","#8a7a70"],["bruin","#5a3e2e"],["ecru","#ece3cc"],["geel","#f0c230"],["limoen","#c9d82a"],["oranje","#e57a32"],["rood","#c62a2f"],["bordeaux","#6e1a2a"],["lichtroze","#f2c4cf"],["roze","#ef7f9a"],["fuchsia","#d1197a"],["lila","#b59ad8"],["paarsgrijs","#8b7f99"],["paars","#5b2bb0"],["aubergine","#4a1f3d"],["lichtblauw","#a9c6e4"],["blauw","#2f6fd6"],["kobalt","#1f45c9"],["donkerblauw","#1f2a4a"],["denim","#5b7aa0"],["turquoise","#1fb3b0"],["petrol","#0f5c63"],["petrolblauw","#1d5878"],["smaragd","#0e8a63"],["zeegroen","#4f9a86"],["salie","#a3b49d"],["olijf","#6b6a2e"],["donkergroen","#2f4a3a"]];
+// kleuren per familie, van licht naar donker: zo zie je het verschil tussen kleuren die op elkaar lijken
+const KLEURGROEPEN=[["Neutraal",["wit","ecru","taupe","grijs","bruin","zwart"]],["Geel",["geel","limoen","oranje"]],["Rood, roze",["lichtroze","roze","fuchsia","rood","bordeaux"]],
+  ["Paars",["lila","paarsgrijs","paars","aubergine"]],["Blauw",["lichtblauw","denim","blauw","kobalt","donkerblauw"]],["Blauwgroen",["turquoise","petrol","petrolblauw"]],["Groen",["salie","zeegroen","smaragd","olijf","donkergroen"]]];
 const FEL=new Set(["fuchsia","kobalt","blauw","turquoise","smaragd","rood","roze","paars","lila","limoen","geel","oranje","zeegroen","bordeaux"]);
 const STRAK_FEL=new Set(["fuchsia","kobalt","turquoise","smaragd","limoen","rood","oranje","paars","geel"]);
 const ZACHT=new Set(["salie","zeegroen","lichtblauw","lila","ecru","lichtroze"]);
@@ -951,7 +958,8 @@ function labelStap(id){ // één voor één de juiste info geven
   <div class="groep"><h3>Wat is het?</h3><p class="mut" style="margin-bottom:8px">Kun je het op meer manieren dragen, zoals een vest dat ook een jurk is? Tik ze allemaal aan.</p>
     <div class="pillen">${soorten.map(([k,t])=>`<button class="pil" data-soort="${k}" aria-pressed="${soortenVan(n).includes(k)}">${t}</button>`).join("")}</div></div>
   <div class="groep"><h3>Welke kleur?</h3><p class="mut" style="margin-bottom:8px">Tik de hoofdkleur. Meer kleuren mag: de eerste is de hoofdkleur.</p>
-    <div class="swatches">${PALET.map(swatch).join("")}</div>
+    <div class="swatches">${KLEURGROEPEN.map(([g,ks])=>`<div class="kleurrij"><span>${g}</span><div>${ks.map(k=>swatch([k,(PALET.find(p=>p[0]===k)||[0,"#888"])[1]])).join("")}</div></div>`).join("")}</div>
+    <p class="gekozen" aria-live="polite">${n.kleuren.length?`Gekozen: <b>${n.kleuren[0]}</b>${n.kleuren.length>1?` met ${n.kleuren.slice(1).join(" en ")}`:""}`:'<span class="mut">Nog geen kleur gekozen</span>'}</p>
     <div class="pillen" style="margin-top:8px"><button class="pil" data-bool="patroon" aria-pressed="${!!n.patroon}">Heeft een patroon</button></div></div>
   ${schoen?"":groep("Pasvorm",["getailleerd","recht","wijd"].map(v=>chip("pasvorm",v,v[0].toUpperCase()+v.slice(1))).join("")+'<span class="breek"></span>'+["kort","normaal","lang"].map(v=>chip("lengte",v,v[0].toUpperCase()+v.slice(1))).join(""))}
   ${schoen||zonderDragen(n)?"":groep("Hoe draag je het?",DRAGEN.map(([v,t])=>chip("dragen",v,t,true)).join(""))}
