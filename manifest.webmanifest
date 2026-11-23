@@ -1,7 +1,7 @@
 {
  "name": "Ta-daa",
  "short_name": "Ta-daa",
- "description": "Elke ochtend een outfit uit je eigen kast.",
+ "description": "Weet wat je in je kast hebt hangen, en krijg verrassende outfits.",
  "lang": "nl",
  "start_url": "./",
  "scope": "./",
