@@ -311,15 +311,15 @@ const LAAG={vest:"Bovenlaag",kimono:"Bovenlaag","jasje/blazer":"Bovenlaag",blous
 const VOLGORDE=["Bovenlaag","Basis","Top","Accent","Onder","Schoenen"];
 const SOORTEN=[["vest","Vest"],["kimono","Kimono"],["blouse","Blouse"],["shirt/top","Shirt of top"],["trui","Trui"],["hemdje","Hemdje"],["broek","Broek"],["rok","Rok"],["jurk","Jurk"],["jumpsuit","Jumpsuit"],["schoenen","Schoenen"]];
 const SOORTNAAM=Object.fromEntries(SOORTEN.map(([k,t])=>[k,t.toLowerCase()]));
-const PALET=[["zwart","#1b1b1b"],["wit","#f5f5f2"],["grijs","#8a8f93"],["taupe","#8a7a70"],["bruin","#5a3e2e"],["ecru","#ece3cc"],["geel","#f0c230"],["limoen","#c9d82a"],["oranje","#e57a32"],["rood","#c62a2f"],["bordeaux","#6e1a2a"],["lichtroze","#f2c4cf"],["roze","#ef7f9a"],["fuchsia","#d1197a"],["lila","#b59ad8"],["paars","#5b2bb0"],["aubergine","#4a1f3d"],["lichtblauw","#a9c6e4"],["blauw","#2f6fd6"],["kobalt","#1f45c9"],["donkerblauw","#1f2a4a"],["denim","#5b7aa0"],["turquoise","#1fb3b0"],["petrol","#0f5c63"],["smaragd","#0e8a63"],["zeegroen","#4f9a86"],["salie","#a3b49d"],["olijf","#6b6a2e"],["donkergroen","#2f4a3a"]];
+const PALET=[["zwart","#1b1b1b"],["wit","#f5f5f2"],["grijs","#8a8f93"],["taupe","#8a7a70"],["bruin","#5a3e2e"],["ecru","#ece3cc"],["geel","#f0c230"],["limoen","#c9d82a"],["oranje","#e57a32"],["rood","#c62a2f"],["bordeaux","#6e1a2a"],["lichtroze","#f2c4cf"],["roze","#ef7f9a"],["fuchsia","#d1197a"],["lila","#b59ad8"],["paarsgrijs","#8b7f99"],["paars","#5b2bb0"],["aubergine","#4a1f3d"],["lichtblauw","#a9c6e4"],["blauw","#2f6fd6"],["kobalt","#1f45c9"],["donkerblauw","#1f2a4a"],["denim","#5b7aa0"],["turquoise","#1fb3b0"],["petrol","#0f5c63"],["petrolblauw","#1d5878"],["smaragd","#0e8a63"],["zeegroen","#4f9a86"],["salie","#a3b49d"],["olijf","#6b6a2e"],["donkergroen","#2f4a3a"]];
 const FEL=new Set(["fuchsia","kobalt","blauw","turquoise","smaragd","rood","roze","paars","lila","limoen","geel","oranje","zeegroen","bordeaux"]);
 const STRAK_FEL=new Set(["fuchsia","kobalt","turquoise","smaragd","limoen","rood","oranje","paars","geel"]);
 const ZACHT=new Set(["salie","zeegroen","lichtblauw","lila","ecru","lichtroze"]);
 const BLAUW=new Set(["kobalt","blauw","donkerblauw","lichtblauw"]);
 const FAMILIE={rood:"rood",bordeaux:"rood",oranje:"rood",roest:"rood",fuchsia:"roze",roze:"roze",lichtroze:"roze",paars:"paars",lila:"paars",aubergine:"paars",
-  kobalt:"blauw",blauw:"blauw",donkerblauw:"blauw",lichtblauw:"blauw",turquoise:"turquoise",
+  kobalt:"blauw",blauw:"blauw",donkerblauw:"blauw",lichtblauw:"blauw",petrolblauw:"blauw",turquoise:"turquoise",
   smaragd:"groen",zeegroen:"groen",salie:"groen",olijf:"groen",donkergroen:"groen",petrol:"groen",limoen:"geel",geel:"geel",ecru:"geel",
-  denim:"denim",zwart:"zwart"}; // wit, grijs, blauwgrijs, taupe en bruin tellen niet als kleur
+  denim:"denim",zwart:"zwart"}; // wit, grijs, blauwgrijs, paarsgrijs, taupe en bruin tellen niet als kleur
 const KLEURTYPES={winter:["Winter","koel, helder, veel contrast",["ecru","olijf","roest","oranje","taupe"]],zomer:["Zomer","koel en zacht",["zwart","oranje","limoen"]],
   lente:["Lente","warm en helder",["zwart","aubergine","bordeaux"]],herfst:["Herfst","warm en gedempt",["fuchsia","kobalt","lichtblauw"]],onbekend:["Weet ik niet","de kast kijkt alleen naar je regels",[]]};
 const WEER=[["koud","Koud"],["fris","Fris"],["warm","Warm"]];
@@ -419,13 +419,19 @@ function rolVan(id,ids){
 }
 const actief=id=>K[id]&&!S.wegStuk.includes(id);
 // kast als kleurwaaier: licht → warm → koel → groen → aardetinten → donker
-const WAAIER=["wit","ecru","geel","limoen","oranje","rood","lichtroze","roze","fuchsia","bordeaux","aubergine","lila","paars","lichtblauw","blauw","kobalt","denim","donkerblauw","turquoise","petrol","zeegroen","smaragd","salie","olijf","donkergroen","taupe","bruin","grijs","zwart"];
+const WAAIER=["wit","ecru","geel","limoen","oranje","rood","lichtroze","roze","fuchsia","bordeaux","aubergine","lila","paars","paarsgrijs","lichtblauw","blauw","kobalt","denim","donkerblauw","petrolblauw","turquoise","petrol","zeegroen","smaragd","salie","olijf","donkergroen","taupe","bruin","grijs","zwart"];
 const opKleur=l=>[...l].sort((a,b)=>{const i=k=>{const x=WAAIER.indexOf(k.kleuren?.[0]);return x<0?99:x;};return i(a)-i(b)||(a.soort>b.soort?1:a.soort<b.soort?-1:0);});
 const kastNu=()=>KAST.filter(k=>actief(k.id)&&past(k));
 function past(k){ // wat hoort bij je afdeling (herenkleding: geen rokken, jurken of hakken)
   if(!heren()) return true;
   return !["rok","jurk"].includes(k.soort)&&!(k.soort==="schoenen"&&labels(k.id).hak);
 }
+// welke plekken een soort kledingstuk kan laten zien (een broek laat geen decolleté zien)
+const BOVEN=["schouders","armen","decollete","rug","taille"];
+const ZONES_SOORT={broek:["taille","heupen","benen"],rok:["taille","heupen","benen"],vest:["schouders","armen","taille"],kimono:["schouders","armen","taille"],
+  blouse:BOVEN,"shirt/top":BOVEN,trui:BOVEN,hemdje:BOVEN,schoenen:[]};
+const zonesVoor=k=>{const s=soortenVan(k);if(!s.length)return zones();const mag=new Set(s.flatMap(x=>ZONES_SOORT[x]??zones().map(z=>z[0])));return zones().filter(([z])=>mag.has(z));};
+const zonderDragen=k=>{const s=soortenVan(k);return s.length>0&&s.every(x=>["broek","rok","schoenen"].includes(x));};
 function zones(){ // de plekken op het poppetje, met woorden die bij je afdeling passen
   return [["schouders","Schouders"],["armen","Armen"],["decollete",heren()?"Borst":"Decolleté"],["rug","Rug"],["taille","Taille"],["heupen","Heupen"],["benen","Benen"]];
 }
@@ -480,7 +486,7 @@ function voorkeur(ids){
 function zichtScore(ids){ // wat laat deze outfit zien, en hoe voel jij je daarbij?
   const its=ids.map(id=>K[id]); const bedekt=new Set();
   if(ids.some(id=>rolVan(id,ids)==="Bovenlaag")) ["schouders","armen","rug"].forEach(z=>bedekt.add(z));
-  const zicht=new Set(its.filter(i=>i.soort!=="hemdje").flatMap(i=>labels(i.id).zichtbaar).filter(z=>!bedekt.has(z)));
+  const zicht=new Set(its.filter(i=>i.soort!=="hemdje").flatMap(i=>{const m=new Set(zonesVoor(i).map(z=>z[0]));return labels(i.id).zichtbaar.filter(z=>m.has(z));}).filter(z=>!bedekt.has(z)));
   let s=0; const z=P().zones;
   zicht.forEach(x=>{ if(z[x]==="ja") s+=.4; if(z[x]==="nee") s-=1.2; });
   return Math.max(-3,Math.min(1,s));
@@ -946,8 +952,8 @@ function labelStap(id){ // één voor één de juiste info geven
     <div class="swatches">${PALET.map(swatch).join("")}</div>
     <div class="pillen" style="margin-top:8px"><button class="pil" data-bool="patroon" aria-pressed="${!!n.patroon}">Heeft een patroon</button></div></div>
   ${schoen?"":groep("Pasvorm",["getailleerd","recht","wijd"].map(v=>chip("pasvorm",v,v[0].toUpperCase()+v.slice(1))).join("")+'<span class="breek"></span>'+["kort","normaal","lang"].map(v=>chip("lengte",v,v[0].toUpperCase()+v.slice(1))).join(""))}
-  ${schoen?"":groep("Hoe draag je het?",DRAGEN.map(([v,t])=>chip("dragen",v,t,true)).join(""))}
-  ${schoen?"":groep("Wat laat het zien?",zones().map(([z,t])=>chip("zichtbaar",z,t,true)).join(""))}
+  ${schoen||zonderDragen(n)?"":groep("Hoe draag je het?",DRAGEN.map(([v,t])=>chip("dragen",v,t,true)).join(""))}
+  ${schoen?"":groep("Wat laat het zien?",zonesVoor(n).map(([z,t])=>chip("zichtbaar",z,t,true)).join(""))}
   ${groep("Voor welk weer?",WEER.map(([v,t])=>chip("weer",v,t,true)).join(""))}
   ${groep("Hoe voelt dit stuk?",[["comfy","Comfortabel"],["sexy","Sexy"],["stoer","Stoer"]].map(([v,t])=>chip("tags",v,t,true)).join("")+((onder||schoen)&&!heren()?`<button class="pil" data-bool="hak" aria-pressed="${!!n.hak}">${schoen?"Met hak":"Alleen met hakken"}</button>`:""))}
   <div class="vastonder"><p class="meer-hint" aria-hidden="true">Scroll voor meer opties<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></p><button class="primair" id="volgende" ${klaarOk?"":"disabled"}>${klaarOk?(plek>-1&&plek<totaal-1?"Klaar, volgende foto":"Klaar"):"Kies eerst soort, kleur en weer"}</button>
@@ -966,7 +972,9 @@ function labelStap(id){ // één voor één de juiste info geven
   app.querySelectorAll("[data-kleur]").forEach(b=>b.onclick=()=>{const k=b.dataset.kleur,i=n.kleuren.indexOf(k);i>-1?n.kleuren.splice(i,1):n.kleuren.length<3&&n.kleuren.push(k);bewaar();opnieuw();});
   app.querySelectorAll("[data-bool]").forEach(b=>b.onclick=()=>{n[b.dataset.bool]=!n[b.dataset.bool];bewaar();opnieuw();});
   $("#terug").onclick=()=>{tab="kast";kast();};
-  if($("#overslaan")) $("#overslaan").onclick=()=>{labelStap(rij[(plek+1)%totaal].id);scrollTo(0,0);};
+  if($("#overslaan")) $("#overslaan").onclick=()=>{ // deze foto achteraan de rij zetten
+    const i=S.nieuw.findIndex(x=>x.id===id); S.nieuw.push(...S.nieuw.splice(i,1)); bewaar(); syncNieuw();
+    const r=teLabelen(); let v=r[Math.min(Math.max(plek,0),r.length-1)]; if(v.id===id) v=r[0]; labelStap(v.id); scrollTo(0,0);};
   $("#fotoweg").onclick=()=>{S.wegStuk.push(id);bewaar();syncNieuw();melding("Foto verwijderd",()=>{S.wegStuk=S.wegStuk.filter(x=>x!==id);syncNieuw();});const r=teLabelen();r.length?labelStap(r[0].id):kast();};
   $("#volgende").onclick=()=>{ if(!klaarOk) return;
     const was=n.klaar; n.klaar=true;
@@ -986,8 +994,8 @@ function labelVel(id){ // gevoel en details van een stuk aanpassen
     <h3>Hoe voelt dit stuk?</h3><p class="mut" style="margin-bottom:8px">Meer mag, niks ook.</p>
     <div class="toggles">${BEHOEFTES.map(([n,t])=>`<button class="toggle" data-t="${n}" aria-pressed="${l.tags.includes(n)}">${t}<i></i></button>`).join("")}</div>
     <div class="toggles">${isSoort(it,["broek","rok"])&&!heren()?`<button class="toggle" data-x="hak" aria-pressed="${l.hak}">Alleen met hakken<i></i></button>`:""}</div>
-    ${it.soort!=="schoenen"?`<h3 style="margin-top:12px">Hoe draag je het?</h3><div class="pillen" style="margin-bottom:8px">${DRAGEN.map(([v,t])=>`<button class="pil" data-dragen="${v}" aria-pressed="${l.dragen.includes(v)}">${t}</button>`).join("")}</div>`:""}
-    ${it.soort!=="schoenen"?`<h3 style="margin-top:12px">Wat laat het zien?</h3><div class="pillen" style="margin-bottom:8px">${zones().map(([z,t])=>`<button class="pil" data-z="${z}" aria-pressed="${l.zichtbaar.includes(z)}">${t}</button>`).join("")}</div>`:""}
+    ${it.soort!=="schoenen"&&!zonderDragen(it)?`<h3 style="margin-top:12px">Hoe draag je het?</h3><div class="pillen" style="margin-bottom:8px">${DRAGEN.map(([v,t])=>`<button class="pil" data-dragen="${v}" aria-pressed="${l.dragen.includes(v)}">${t}</button>`).join("")}</div>`:""}
+    ${it.soort!=="schoenen"?`<h3 style="margin-top:12px">Wat laat het zien?</h3><div class="pillen" style="margin-bottom:8px">${zonesVoor(it).map(([z,t])=>`<button class="pil" data-z="${z}" aria-pressed="${l.zichtbaar.includes(z)}">${t}</button>`).join("")}</div>`:""}
     <h3 style="margin-top:12px">Voor welk weer?</h3><div class="pillen" style="margin-bottom:8px">${WEER.map(([w,t])=>`<button class="pil" data-weer="${w}" aria-pressed="${l.weer.includes(w)}">${t}</button>`).join("")}</div>
     <button class="primair" id="klaar" style="margin-top:12px">Klaar</button>
     ${zelf?'<button class="link" id="alles">Kleur, soort en meer aanpassen</button>':""}
