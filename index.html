@@ -336,6 +336,22 @@ const KLEURGROEPEN=[["Neutraal",["wit","ecru","taupe","grijs","bruin","zwart"]],
   ["Paars",["lila","paarsgrijs","paars","aubergine"]],["Blauw",["lichtblauw","denim","blauw","kobalt","donkerblauw"]],["Blauwgroen",["turquoise","petrol","petrolblauw"]],["Groen",["salie","zeegroen","smaragd","olijf","donkergroen"]]];
 const FEL=new Set(["fuchsia","kobalt","blauw","turquoise","smaragd","rood","roze","paars","lila","limoen","geel","oranje","zeegroen","bordeaux"]);
 const STRAK_FEL=new Set(["fuchsia","kobalt","turquoise","smaragd","limoen","rood","oranje","paars","geel"]);
+// kleurenwiel: tint (0-360) per kleur; neutrale kleuren (wit, grijs, zwart, taupe, bruin, ecru, denim, paarsgrijs) staan er niet in
+const TINT={rood:0,bordeaux:350,lichtroze:345,roze:340,fuchsia:325,aubergine:310,lila:270,paars:265,lichtblauw:210,denim:null,blauw:218,kobalt:228,donkerblauw:225,
+  petrolblauw:200,turquoise:178,petrol:185,zeegroen:165,smaragd:155,donkergroen:145,salie:110,olijf:60,limoen:70,geel:50,oranje:25};
+const lichtheid=k=>{const hx=(PALET.find(p=>p[0]===k)||[])[1];if(!hx)return .5;const n=parseInt(hx.slice(1),16),r=n>>16&255,g=n>>8&255,b=n&255;return (Math.max(r,g,b)+Math.min(r,g,b))/510;};
+const tintAfstand=(a,b)=>{const d=Math.abs(TINT[a]-TINT[b])%360;return d>180?360-d:d;};
+const lichtVerschil=ks=>{const l=ks.map(lichtheid);return l.length?Math.max(...l)-Math.min(...l):0;};
+function kleurenwiel(c){ // punten voor kleuren die elkaar versterken
+  const ks=[...c.kl].filter(k=>TINT[k]!=null); if(ks.length<1) return 0;
+  if(new Set(c.fam).size===1&&ks.length>=2&&lichtVerschil([...c.kl])>=.2) return .8;   // ton-sur-ton met licht en donker
+  let best=0;
+  ks.forEach((a,i)=>ks.slice(i+1).forEach(b=>{const d=tintAfstand(a,b);
+    if(d>=150) best=Math.max(best,1);            // tegenover elkaar: complementair
+    else if(d>=15&&d<=75) best=Math.max(best,.6); // naast elkaar: analoog
+  }));
+  return best;
+}
 const ZACHT=new Set(["salie","zeegroen","lichtblauw","lila","ecru","lichtroze"]);
 const BLAUW=new Set(["kobalt","blauw","donkerblauw","lichtblauw"]);
 const FAMILIE={rood:"rood",bordeaux:"rood",oranje:"rood",roest:"rood",fuchsia:"roze",roze:"roze",lichtroze:"roze",paars:"paars",lila:"paars",aubergine:"paars",
@@ -465,18 +481,19 @@ function zones(){ // de plekken op het poppetje, met woorden die bij je afdeling
    'voorkeur' zet hem alleen hoger of lager. ctx = {ids, its, kl (hoofdkleuren), fam (kleurfamilies)}. */
 const REGELS=[ // algemene regels: voor iedereen
   {id:"max3",groep:"Kleur",tekst:"Maximaal 3 kleuren",verbod:c=>new Set(c.fam).size>3},
-  {id:"eentonig",groep:"Kleur",tekst:"Niet alles uit één kleurfamilie",verbod:c=>new Set(c.fam).size===1&&c.fam.length>=2},
+  {id:"eentonig",groep:"Kleur",tekst:"Eén kleurfamilie alleen met licht en donker",verbod:c=>new Set(c.fam).size===1&&c.fam.length>=2&&lichtVerschil([...c.kl].filter(k=>FAMILIE[k]))<.2},
   {id:"fel",groep:"Kleur",tekst:"Minstens één felle kleur",verbod:c=>![...c.kl].some(k=>FEL.has(k))},
   {id:"patroon",groep:"Combineren",tekst:"Niet twee patronen",verbod:c=>c.ids.filter(isPatroon).length>1},
   {id:"vesttrui",groep:"Combineren",tekst:"Geen vest over een trui",verbod:c=>c.its.some(i=>i.soort==="trui")&&c.its.some(i=>rolVan(i.id,c.ids)==="Bovenlaag")},
   {id:"wijd",groep:"Combineren",tekst:"Niet wijd met wijd",verbod:c=>c.its.some(i=>rolVan(i.id,c.ids)==="Bovenlaag"&&i.pasvorm==="wijd")&&c.its.some(i=>["broek","rok"].includes(i.soort)&&i.pasvorm==="wijd")},
   {id:"weer",groep:"Combineren",tekst:"Past bij het weer van vandaag",verbod:c=>!c.its.every(pastWeer)},
   {id:"blikvanger",groep:"Voorkeur",tekst:"Eén blikvanger per outfit",voorkeur:c=>c.its.some(i=>i.patroon)&&c.its.some(i=>!i.patroon&&!["hemdje","schoenen"].includes(i.soort)&&STRAK_FEL.has(i.kleuren?.[0]))?-1:0},
+  {id:"wiel",groep:"Voorkeur",tekst:"Kleuren die elkaar versterken (kleurenwiel)",voorkeur:kleurenwiel},
   {id:"herhaal",groep:"Voorkeur",tekst:"Een kleur die terugkomt",voorkeur:c=>{const a=c.its.flatMap(i=>i.kleuren||[]);return a.some((k,i)=>k!=="zwart"&&a.indexOf(k)!==i)?1:0;}},
 ];
 const TYPEREGELS={ // komen er vanzelf bij als je je kleurtype kiest
   winter:[
-    {id:"felzacht",groep:"Kleurtype",tekst:"Fel niet naast zacht",verbod:c=>[...c.kl].some(k=>STRAK_FEL.has(k))&&[...c.kl].some(k=>ZACHT.has(k))},
+    {id:"felzacht",groep:"Kleurtype",tekst:"Fel niet naast zacht",verbod:c=>[...c.kl].some(k=>STRAK_FEL.has(k)&&[...c.kl].some(z=>ZACHT.has(z)&&FAMILIE[z]!==FAMILIE[k]))},
     {id:"gezicht",groep:"Kleurtype",tekst:"De felste kleur bij je gezicht",voorkeur:c=>{const f=i=>FEL.has(i.kleuren?.[0]);const b=c.its.filter(i=>["Top","Bovenlaag","Basis"].includes(LAAG[i.soort])),o=c.its.filter(i=>LAAG[i.soort]==="Onder");return (b.some(f)?.5:0)-(o.some(f)&&!b.some(f)?1:0);}},
   ],
   zomer:[{id:"zachtcontrast",groep:"Kleurtype",tekst:"Zachte kleuren, weinig contrast",voorkeur:c=>[...c.kl].filter(k=>STRAK_FEL.has(k)).length>1?-1:0}],
