@@ -399,7 +399,11 @@ function labels(id){
 const tags=id=>labels(id).tags;
 const kleur=id=>K[id]?.kleuren?.[0];
 const isPatroon=id=>!!K[id]?.patroon;
-const metPanty=id=>["rok","jurk"].includes(K[id]?.soort);
+// een stuk kan meer soorten zijn (vest én jurk): soort = meestal, ook = de rest
+const soortenVan=k=>k?[k.soort,...(k.ook||[])].filter(Boolean):[];
+const isSoort=(k,l)=>soortenVan(k).some(s=>l.includes(s));
+const lagenVan=k=>soortenVan(k).map(s=>LAAG[s]);
+const metPanty=id=>isSoort(K[id],["rok","jurk"]);
 const actief=id=>K[id]&&!S.wegStuk.includes(id);
 // kast als kleurwaaier: licht → warm → koel → groen → aardetinten → donker
 const WAAIER=["wit","ecru","geel","limoen","oranje","rood","lichtroze","roze","fuchsia","bordeaux","aubergine","lila","paars","lichtblauw","blauw","kobalt","denim","donkerblauw","turquoise","petrol","zeegroen","smaragd","salie","olijf","donkergroen","taupe","bruin","grijs","zwart"];
@@ -490,11 +494,11 @@ function ideeen(vast){
   const sleutel=JSON.stringify([S.wegStuk,S.wegIdee,S.labels,S.profiel,vast.length,KAST.length,weerNu()]);
   if(_ideeCache&&_ideeSleutel===sleutel) return _ideeCache;
   const al=new Set(vast.map(o=>kledingIn(o).sort().join("+")));
-  const kast=kastNu().filter(k=>!k.nietInIdeeen), soort=s=>kast.filter(k=>s.includes(k.soort));
+  const kast=kastNu().filter(k=>!k.nietInIdeeen), soort=s=>kast.filter(k=>isSoort(k,s));
   const tops=soort(["blouse","shirt/top","trui"]), onders=soort(["broek","rok"]), vesten=soort(["vest","kimono"]), hemdjes=soort(["hemdje"]), basis=soort(["jurk","jumpsuit"]);
   const kandidaten=[];
   const probeer=(ids,bonus)=>{
-    if(!regelsOk(ids)) return;
+    if(new Set(ids).size<ids.length||!regelsOk(ids)) return; // hetzelfde stuk niet twee keer
     const k=[...ids].sort().join("+"); if(al.has(k)||S.wegIdee.includes(k)) return; al.add(k);
     const fel=new Set(ids.map(kleur).filter(c=>FEL.has(c))).size;
     const sch=schoenVoor(ids);
@@ -527,7 +531,7 @@ function ideeen(vast){
 const kledingIn=o=>o.stukken.filter(id=>K[id]?.soort!=="schoenen");
 function alle(){ // alle outfits: vaste + eigen combi's + ideeën van de kast
   const eigen=OUTFITS.map(o=>({...o,nr:String(o.nr),status:S.status[o.nr]||o.status})).concat(S.extra.map(o=>({...o,nr:String(o.nr)})));
-  const heeftBasis=o=>o.stukken.some(id=>["broek","rok","jurk","jumpsuit"].includes(K[id]?.soort));
+  const heeftBasis=o=>o.stukken.some(id=>isSoort(K[id],["broek","rok","jurk","jumpsuit"]));
   const vast=eigen.filter(o=>!S.weg.map(String).includes(o.nr)).map(o=>({...o,stukken:o.stukken.filter(id=>actief(id)&&past(K[id]))})).filter(o=>kledingIn(o).length>=2&&heeftBasis(o));
   return vast.concat(ideeen(vast));
 }
@@ -800,7 +804,7 @@ function kast(){
   <input type="file" id="bestand" accept="image/*" multiple hidden>
   <div class="seg" role="tablist"><button role="tab" data-w="kast" aria-selected="${w==="kast"}">In mijn kast</button><button role="tab" data-w="labelen" aria-selected="${w==="labelen"}">Nog labelen${open.length?` <b>${open.length}</b>`:""}</button></div>
   ${w==="kast"?`<div class="filters">${groepen.map(([k,t])=>`<button class="pil" data-g="${k}" aria-pressed="${g===k}">${t}</button>`).join("")}</div>
-    <div class="raster">${opKleur(kastNu().filter(k=>g==="alles"||LAAG[k.soort]===g)).map(k=>`<button class="stuk" data-k="${k.id}" aria-label="${esc(k.naam)}"><img src="${k.foto}" alt="" loading="lazy">${k.kleuren?.[0]?`<i class="stip" style="--k:${(PALET.find(p=>p[0]===k.kleuren[0])||[0,"#888"])[1]}"></i>`:""}</button>`).join("")}</div>`
+    <div class="raster">${opKleur(kastNu().filter(k=>g==="alles"||lagenVan(k).includes(g))).map(k=>`<button class="stuk" data-k="${k.id}" aria-label="${esc(k.naam)}"><img src="${k.foto}" alt="" loading="lazy">${k.kleuren?.[0]?`<i class="stip" style="--k:${(PALET.find(p=>p[0]===k.kleuren[0])||[0,"#888"])[1]}"></i>`:""}</button>`).join("")}</div>`
   :open.length?`<p class="mut" style="margin-bottom:10px">Loop ze één voor één door en geef ze de juiste info. Daarna staan ze in je kast.</p>
     <button class="primair" id="start" style="margin-bottom:12px">Begin met labelen</button>
     <div class="raster">${open.map(n=>`<button class="stuk" data-n="${n.id}" aria-label="Nog labelen"><img src="${fotoSrc(n.asset)}" alt=""></button>`).join("")}</div>`
@@ -906,7 +910,7 @@ function labelStap(id){ // één voor één de juiste info geven
   const n=S.nieuw.find(x=>x.id===id); if(!n){kast();return;}
   n.zichtbaar??=[];
   const rij=teLabelen(), plek=rij.findIndex(x=>x.id===id), totaal=rij.length;
-  const schoen=n.soort==="schoenen", onder=["broek","rok"].includes(n.soort);
+  const schoen=n.soort==="schoenen"&&!(n.ook||[]).length, onder=isSoort(n,["broek","rok"]);
   const chip=(veld,waarde,tekst,meer)=>`<button class="pil" data-veld="${veld}" data-waarde="${waarde}" data-meer="${meer?1:0}" aria-pressed="${meer?(n[veld]||[]).includes(waarde):n[veld]===waarde}">${tekst}</button>`;
   const groep=(titel,inhoud)=>`<div class="groep"><h3>${titel}</h3><div class="pillen">${inhoud}</div></div>`;
   const swatch=([naam,hx])=>{const i=n.kleuren.indexOf(naam);return `<button class="swatch" data-kleur="${naam}" aria-pressed="${i>-1}" aria-label="${naam}" title="${naam}" style="--k:${hx}">${i>-1?`<b>${i+1}</b>`:""}</button>`;};
@@ -917,7 +921,8 @@ function labelStap(id){ // één voor één de juiste info geven
   ${plek>-1?`<div class="voortgang"><i style="width:${Math.round(plek/Math.max(totaal,1)*100)}%"></i></div>`:""}
   <img class="groot" src="${fotoSrc(n.asset)}" alt="">
   <div style="height:10px"></div>
-  ${groep("Wat is het?",soorten.map(([k,t])=>chip("soort",k,t)).join(""))}
+  <div class="groep"><h3>Wat is het?</h3><p class="mut" style="margin-bottom:8px">Kun je het op meer manieren dragen, zoals een vest dat ook een jurk is? Tik ze allemaal aan.</p>
+    <div class="pillen">${soorten.map(([k,t])=>`<button class="pil" data-soort="${k}" aria-pressed="${soortenVan(n).includes(k)}">${t}</button>`).join("")}</div></div>
   <div class="groep"><h3>Welke kleur?</h3><p class="mut" style="margin-bottom:8px">Tik de hoofdkleur. Meer kleuren mag: de eerste is de hoofdkleur.</p>
     <div class="swatches">${PALET.map(swatch).join("")}</div>
     <div class="pillen" style="margin-top:8px"><button class="pil" data-bool="patroon" aria-pressed="${!!n.patroon}">Heeft een patroon</button></div></div>
@@ -932,6 +937,10 @@ function labelStap(id){ // één voor één de juiste info geven
   app.querySelectorAll("[data-veld]").forEach(b=>b.onclick=()=>{const v=b.dataset.veld,w=b.dataset.waarde;
     if(b.dataset.meer==="1"){n[v]??=[];const i=n[v].indexOf(w);i>-1?n[v].splice(i,1):n[v].push(w);} else n[v]=n[v]===w?"":w;
     if(v==="soort"&&w==="hemdje"&&!n.dragen.includes("onder")) n.dragen.push("onder");
+    bewaar();opnieuw();});
+  app.querySelectorAll("[data-soort]").forEach(b=>b.onclick=()=>{const w=b.dataset.soort,a=soortenVan(n),i=a.indexOf(w);
+    i>-1?a.splice(i,1):a.push(w); n.soort=a[0]||""; n.ook=a.slice(1);
+    if(w==="hemdje"&&i<0&&!n.dragen.includes("onder")) n.dragen.push("onder");
     bewaar();opnieuw();});
   app.querySelectorAll("[data-foto]").forEach(b=>b.onclick=()=>{n.asset=b.dataset.foto==="los"?n.uitgeknipt:n.origineel;bewaar();syncNieuw();opnieuw();});
   app.querySelectorAll("[data-kleur]").forEach(b=>b.onclick=()=>{const k=b.dataset.kleur,i=n.kleuren.indexOf(k);i>-1?n.kleuren.splice(i,1):n.kleuren.length<3&&n.kleuren.push(k);bewaar();opnieuw();});
@@ -1139,7 +1148,7 @@ function sluit(){$("#vel-plek").innerHTML="";document.body.style.overflow="";}
 document.addEventListener("keydown",e=>{if(e.key==="Escape")sluit();});
 function opties(laag){ // kledingstukken die op deze laag passen ("TopBasis" = top of jurk)
   const lagen=laag==="TopBasis"?["Top","Basis"]:[laag];
-  return kastNu().filter(k=>lagen.includes(LAAG[k.soort])&&pastWeer(k));
+  return kastNu().filter(k=>lagenVan(k).some(l=>lagen.includes(l))&&pastWeer(k));
 }
 function wisselVel(id,klaar){
   const laag=LAAG[K[id].soort];
