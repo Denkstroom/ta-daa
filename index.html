@@ -524,7 +524,8 @@ function suggesties(){ // kleurparen die je minstens 3 keer weghaalde en nooit b
 /* ================= 5. Ideeën van de kast + score ================= */
 function schoenVoor(ids){
   const schoenen=kastNu().filter(k=>k.soort==="schoenen"), its=ids.map(id=>K[id]);
-  const kies=f=>schoenen.find(f)?.id||null;
+  const zaad=Math.floor(dagzaad(ids.join("+"))*997);
+  const kies=f=>{const m=schoenen.filter(f);return m.length?m[zaad%m.length].id:null;};
   if(its.some(i=>labels(i.id).hak)) return kies(s=>labels(s.id).hak&&pastWeer(s));
   if(its.some(i=>metPanty(i.id))) return kies(s=>!labels(s.id).hak&&pastWeer(s)&&tags(s.id).includes("stoer"))||kies(s=>!labels(s.id).hak&&pastWeer(s));
   return kies(s=>!labels(s.id).hak&&pastWeer(s)&&tags(s.id).includes("comfy")&&!tags(s.id).includes("stoer"))||kies(s=>!labels(s.id).hak&&pastWeer(s));
@@ -543,36 +544,36 @@ function ideeen(vast){
     const fel=new Set(ids.map(kleur).filter(c=>FEL.has(c))).size;
     const sch=schoenVoor(ids);
     kandidaten.push({nr:"i"+k,sleutel:k,stukken:sch?[...ids,sch]:ids,status:"idee",idee:true,
-      schoenen:ids.some(metPanty)?"Met panty":"",s:fel+bonus+voorkeur(ids)+dagzaad(k)*0.8});
+      schoenen:ids.some(metPanty)?"Met panty":"",s:Math.min(fel,1)+bonus-0.55*(ids.length-2)+voorkeur(ids)+dagzaad(k)*1.2});
   };
   for(const t of tops) for(const o of onders){
     const wilAccent=t.soort==="blouse"||t.scheveHals||labels(t.id).dragen.includes("over");
     const accenten=wilAccent?hemdjes.filter(h=>kleur(h.id)!==kleur(t.id)).sort((a,b)=>FEL.has(kleur(b.id))-FEL.has(kleur(a.id))).slice(0,3):[null];
     for(const h of accenten){
       const ids=h?[t.id,o.id,h.id]:[t.id,o.id];
-      probeer(ids,h?0.4:0);
-      if(!t.geenVestErover) for(const v of vesten) probeer([...ids,v.id],0.6);
+      probeer(ids,0);
+      if(!t.geenVestErover) for(const v of vesten) probeer([...ids,v.id],0);
     }
   }
-  for(const b of basis) for(const v of vesten) probeer([b.id,v.id],0.5);
+  for(const b of basis){ probeer([b.id],0.2); for(const v of vesten) probeer([b.id,v.id],0); }
   // variatie: elk stuk komt maar een paar keer voor, lastige stukken één keer
   const telling={}, uit=[], vrij=(k,max)=>(telling[k]||0)<max;
   for(const c of kandidaten.sort((a,b)=>b.s-a.s)){
     const ids=kledingIn(c), hoofd=ids[0];
     const onder=ids.find(id=>["broek","rok"].includes(K[id].soort))||"-", vest=ids.find(id=>rolVan(id,ids)==="Bovenlaag")||"-", acc=ids.find(id=>K[id].soort==="hemdje")||"-";
     const sleutels=[hoofd,"o"+onder,"v"+vest,"a"+acc,...ids.filter(id=>K[id].lastig).map(id=>"l"+id)];
-    const max=k=>k.startsWith("l")?1:k==="v-"||k==="a-"?99:k.startsWith("o")||k.startsWith("v")||k.startsWith("a")?4:2;
+    const max=k=>k.startsWith("l")?1:k==="v-"||k==="a-"?99:k.startsWith("o")||k.startsWith("v")||k.startsWith("a")?3:2;
     if(!sleutels.every(k=>vrij(k,max(k)))) continue;
     sleutels.forEach(k=>telling[k]=(telling[k]||0)+1);
     uit.push(c); if(uit.length>=24) break;
   }
-  _ideeCache=uit; _ideeSleutel=sleutel; return uit;
+  _ideeCache=gevarieerd(uit); _ideeSleutel=sleutel; return _ideeCache;
 }
 const kledingIn=o=>o.stukken.filter(id=>K[id]?.soort!=="schoenen");
 function alle(){ // alle outfits: vaste + eigen combi's + ideeën van de kast
   const eigen=OUTFITS.map(o=>({...o,nr:String(o.nr),status:S.status[o.nr]||o.status})).concat(S.extra.map(o=>({...o,nr:String(o.nr)})));
   const heeftBasis=o=>o.stukken.some(id=>isSoort(K[id],["broek","rok","jurk","jumpsuit"]));
-  const vast=eigen.filter(o=>!S.weg.map(String).includes(o.nr)).map(o=>({...o,stukken:o.stukken.filter(id=>actief(id)&&past(K[id]))})).filter(o=>kledingIn(o).length>=2&&heeftBasis(o));
+  const vast=eigen.filter(o=>!S.weg.map(String).includes(o.nr)).map(o=>({...o,stukken:o.stukken.filter(id=>actief(id)&&past(K[id]))})).filter(o=>(kledingIn(o).length>=2||kledingIn(o).some(id=>isSoort(K[id],["jurk","jumpsuit"])))&&heeftBasis(o));
   return vast.concat(ideeen(vast));
 }
 const vind=nr=>alle().find(o=>o.nr===String(nr));
@@ -606,7 +607,19 @@ function score(o){ // hoe goed past een outfit bij vandaag?
   return s;
 }
 function dagzaad(x){const n=[...String(x)].reduce((a,c)=>a+c.charCodeAt(0),0);const d=new Date();const v=(d.getFullYear()*372+d.getMonth()*31+d.getDate())*97+n*131;return ((v*9301+49297)%233280)/233280;}
-const ranglijst=()=>alle().filter(inSeizoen).map(o=>({o,s:score(o)+dagzaad(o.nr)*1.2})).sort((a,b)=>b.s-a.s).map(x=>x.o);
+const ranglijst=()=>gevarieerd(alle().filter(inSeizoen).map(o=>({o,s:score(o)+dagzaad(o.nr)*1.2})).sort((a,b)=>b.s-a.s).map(x=>x.o));
+// zet outfits zo op volgorde dat de volgende zo weinig mogelijk dezelfde stukken heeft als de vorige twee
+function gevarieerd(l){
+  const rest=[...l], uit=[];
+  while(rest.length){
+    if(!uit.length){uit.push(rest.shift());continue;}
+    const recent=new Set(uit.slice(-2).flatMap(o=>kledingIn(o)));
+    let best=0,bestD=1e9;
+    for(let i=0;i<Math.min(rest.length,12);i++){const d=kledingIn(rest[i]).filter(id=>recent.has(id)).length*10+i;if(d<bestD){bestD=d;best=i;}}
+    uit.push(rest.splice(best,1)[0]);
+  }
+  return uit;
+}
 // welke outfits je net hebt overgeslagen (alleen op dit apparaat, zodat de lijst elke dag wisselt)
 let GEZIEN={}; try{GEZIEN=JSON.parse(localStorage.getItem("kast-gezien")||"{}");}catch(e){}
 function overgeslagen(nr){(GEZIEN[nr]??=[]).push(vandaagDatum());GEZIEN[nr]=GEZIEN[nr].slice(-5);try{localStorage.setItem("kast-gezien",JSON.stringify(GEZIEN));}catch(e){}}
