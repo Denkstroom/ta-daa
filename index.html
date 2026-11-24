@@ -164,6 +164,15 @@ button.toggle[aria-pressed="true"] i::after,button.regel[aria-pressed="true"] i:
 .secundair.rond{width:52px;height:52px;padding:0;border-radius:50%}.secundair.rond .ico{width:24px;height:24px}
 .politie{background:var(--accent-zacht);border-radius:16px;padding:10px 14px;margin:-4px 0 12px;font-size:14.5px}
 .politie b{display:block;font-size:12px;color:var(--mut);font-weight:700}
+.tipkaart{border:2px solid var(--ster1);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px;gap:4px;color:var(--inkt)}
+.tip-label{color:var(--ster1);font-weight:800;font-size:13px}
+.sil{width:130px;height:140px;display:block;filter:drop-shadow(0 8px 14px rgba(0,0,0,.25))}
+.sil-held{position:relative}.tip-badge{position:absolute;right:-34px;top:2px;background:var(--ster1);color:#2a1406;font-weight:800;font-size:12px;border-radius:99px;padding:4px 10px;white-space:nowrap}
+.tipkaart h3,.tip-vel h3{margin:6px 0 0;font-size:20px}.tipkaart p{margin:0;font-size:14.5px;color:var(--mut);max-width:300px}
+.tip-strook{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:8px 0 14px}.tip-strook img{width:100%;aspect-ratio:3/4;object-fit:contain;background:var(--foto);border-radius:10px}
+.tip-vel{text-align:center}.tip-vel .sil{margin:0 auto}
+.lijstje{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--lijn)}.lijstje .sil{width:52px;height:56px;filter:none}.lijstje p{margin:0}
+.lijstje button{font-size:13px;color:var(--mut);text-decoration:underline}
 .kastcheck{display:grid;grid-template-columns:72px 1fr;gap:12px;background:var(--accent-zacht);border-radius:18px;padding:12px;margin-bottom:12px}
 .kastcheck img{width:72px;height:88px;object-fit:contain}
 .kastcheck p{margin:2px 0 0}
@@ -380,7 +389,7 @@ const SITE=!!window.TADAA_SITE;
 const PROFIEL_START=SITE
   ?{afdeling:"allebei",kleurtype:"onbekend",zones:{},comfort:{geenHakken:false},regelsUit:["fel"],nooit:[],genegeerd:[]}
   :{afdeling:"dames",kleurtype:"winter",zones:{schouders:"ja",armen:"nee"},comfort:{geenHakken:true},regelsUit:[],nooit:[],genegeerd:[]};
-const LEEG={labels:{},extra:[],weg:[],status:{},gedragen:[],wegStuk:[],wegIdee:[],nieuw:[],profiel:PROFIEL_START};
+const LEEG={labels:{},extra:[],weg:[],status:{},gedragen:[],wegStuk:[],wegIdee:[],nieuw:[],lijstje:[],tipWeg:[],profiel:PROFIEL_START};
 const kopie=x=>JSON.parse(JSON.stringify(x));
 let S=kopie(LEEG);
 const LS=SITE?"tadaa-staat":"kast-app-v2";
@@ -662,6 +671,7 @@ function ik(){
     <div class="legenda"><span><i style="background:var(--accent)"></i>laat ik graag zien</span><span><i style="background:var(--vlak);border:1.5px solid var(--lijn)"></i>maakt niet uit</span><span><i style="border:1.5px dashed var(--mut)"></i>liever bedekt</span></div></div>
   <div class="blok"><h2>Kleurtype</h2><p class="mut">${kt[0]}: ${kt[1]}.${kt[2].length?` Minder vaak: ${kt[2].join(", ")}.`:""}</p>
     <div class="pillen">${Object.entries(KLEURTYPES).map(([k,v])=>`<button class="pil" data-kt="${k}" aria-pressed="${p.kleurtype===k}">${v[0]}</button>`).join("")}</div></div>
+  ${lijstjeBlok()}
   ${suggesties().slice(0,1).map(x=>`<div class="blok" style="border:1.5px solid var(--accent)"><h2>De kast merkte iets op</h2><p class="mut">Je haalde ${x.n} keer ${x.paar[0]} met ${x.paar[1]} weg. Wil je die nooit meer samen zien?</p>
     <div class="knoppen" style="margin:0"><button class="secundair" data-sug-nee="${x.paar.join("+")}">Nee</button><button class="primair" data-sug-ja="${x.paar.join("+")}">Ja, nooit samen</button></div></div>`).join("")}
   ${(TYPEREGELS[p.kleurtype]||[]).length?`<div class="blok"><h2>Regels bij ${kt[0].toLowerCase()}</h2><p class="mut">Deze horen bij je kleurtype en komen er vanzelf bij.</p>
@@ -683,6 +693,7 @@ function ik(){
   app.querySelectorAll("[data-regel]").forEach(b=>b.onclick=()=>zet(p=>{const id=b.dataset.regel,i=p.regelsUit.indexOf(id);i>-1?p.regelsUit.splice(i,1):p.regelsUit.push(id);}));
   app.querySelectorAll("[data-sug-ja]").forEach(b=>b.onclick=()=>{const [x,y]=b.dataset.sugJa.split("+");zet(p=>p.nooit.push({a:"k:"+x,b:["k:"+y]}));melding("Toegevoegd aan je eigen regels");});
   app.querySelectorAll("[data-sug-nee]").forEach(b=>b.onclick=()=>zet(p=>{p.genegeerd=[...(p.genegeerd||[]),b.dataset.sugNee];}));
+  app.querySelectorAll("[data-lijst-weg]").forEach(b=>b.onclick=()=>{const i=+b.dataset.lijstWeg,x=S.lijstje[i];zet(()=>S.lijstje.splice(i,1));melding("Van je lijstje gehaald",()=>{S.lijstje.splice(i,0,x);});});
   app.querySelectorAll("[data-weg-regel]").forEach(b=>b.onclick=()=>zet(p=>p.nooit.splice(+b.dataset.wegRegel,1)));
   $("#nooit-voeg").onclick=()=>{const a=$("#nooit-a").value,b=$("#nooit-b").value;
     if(!a||!b||a===b){melding("Kies twee verschillende dingen");return;}
@@ -707,11 +718,14 @@ function vandaag(){
   const lijst=ranglijst();
   const o=lijst.length?lijst[plek%lijst.length]:null;
   const politie=Object.keys(MODEPOLITIE).map(Number).filter(x=>x<=andereTeller).pop();
+  const uur=new Date().getHours(), laatst=S.gedragen.slice(-1)[0];
+  const ei=uur>=23||uur<4?["Psst","Outfit voor in bed? Pyjama, check. Ga slapen 😴"]
+    :laatst&&(new Date(vandaagDatum())-new Date(laatst.datum))/864e5>=30?["Je kast","Hallo? Leef je nog? Je kast mist je."]:null;
   const weerNaam=WEER.find(w=>w[0]===weerNu())[1], zinNaam=ZIN.find(z=>z[0]===zinNu())[1];
   app.innerHTML=`<div class="midden"><div class="boven">${groet()}</div><h1>Wat wil je aan?</h1>
   <div class="wissels"><button class="wisselknop" id="weerknop" aria-label="Weer: ${weerNaam}. Tik om te wisselen"><small>Weer</small><b>${weerNaam}</b></button>
     <button class="wisselknop" id="zinknop" aria-label="Zin in: ${zinNaam}. Tik om te wisselen"><small>Zin in</small><b>${zinNaam}</b></button></div></div>
-  ${politie?`<div class="politie" role="status"><b>Modepolitie</b>${MODEPOLITIE[politie]}</div>`:""}
+  ${politie?`<div class="politie" role="status"><b>Modepolitie</b>${MODEPOLITIE[politie]}</div>`:ei?`<div class="politie" role="status"><b>${ei[0]}</b>${ei[1]}</div>`:""}
   ${o?`<button class="tafel" id="open" aria-label="Bekijk deze outfit laag voor laag">${polaroids(o.stukken)}</button>
     <div class="knoppen"><button class="secundair rond" id="andere" aria-label="Laat een andere outfit zien">${ICO.wissel}</button><button class="primair" id="aan">Trek ik aan</button></div>`
   :kleding<2?`<div class="leeg-staat"><b>Je kast is nog leeg</b><br>Voeg eerst wat kleding toe. Dan gaat Ta-daa voor je combineren.</div><button class="primair" id="naarkast" style="margin-top:10px">Kleding toevoegen</button>`
@@ -734,7 +748,7 @@ function polaroids(ids){ // de outfit als polaroids op een tafel; gewone foto's 
   const sterren=[[9,9,16,1],[90,14,11,2],[88,88,15,1],[8,82,9,2],[55,5,8,1]].map(([x,y,s,c])=>`<span class="ster" style="left:${x}%;top:${y}%;width:${s}px;height:${s}px;background:var(--ster${c})"></span>`).join("");
   return sterren+st.map((id,i)=>{const [x,y,r]=plek[i];return `<span class="pol" style="width:${breedte}%;left:${x}%;top:${y}%;transform:translate(-50%,-50%) rotate(${r}deg);z-index:${i+1}"><img src="${K[id].foto}" alt="${esc(K[id].naam)}"></span>`;}).join("");
 }
-function trekAan(nr){andereTeller=0;nr=bewaarIdee(nr);S.gedragen.push({nr,datum:vandaagDatum()});bewaar();melding("Veel plezier! Vanavond vraag ik hoe het voelde.");}
+function trekAan(nr){andereTeller=0;nr=bewaarIdee(nr);S.gedragen.push({nr,datum:vandaagDatum()});bewaar();melding(S.gedragen.length===50?"Vijftig! Je bent officieel je eigen stylist 🎉":"Veel plezier! Vanavond vraag ik hoe het voelde.");}
 
 const GEVOEL=[[85,"Helemaal mij"],[55,"Oké"],[20,"Niet mezelf"]];
 const OPVIEL=[["strak","Te strak"],["wijd","Te wijd"],["koud","Te koud"],["tewarm","Te warm"],["kleur","Blij van de kleur"],["complimenten","Complimenten"],["saai","Saai"]];
@@ -820,30 +834,33 @@ function tips(ids){ // de kast legt uit wat jouw regels van een combi vinden
 
 /* ================= 8. Outfits en Nieuwe combi ================= */
 function outfits(){
-  const f=["mijn","fav","idee"].includes(outfits.f)?outfits.f:"mijn", lijst=alle();
+  const f=["mijn","fav","idee"].includes(outfits.f)?outfits.f:"mijn", lijst=alle(), tip=f==="idee"?tipNu():null;
   const hoort=(o,k)=>k==="idee"?o.idee:k==="fav"?(!o.idee&&favoriet(o)):!o.idee;
   const l=lijst.filter(o=>hoort(o,f)).sort((a,b)=>(a.idee-b.idee)||(+a.nr-+b.nr));
   app.innerHTML=`<div class="kop"><h1>Mijn outfits</h1><button class="toevoeg" id="nieuwecombi">${ICO_EXTRA.lagen}Nieuwe combi</button></div>
   <div class="filters">${[["mijn","Mijn outfits"],["fav","Favorieten"],["idee","Ideeën"]].map(([k,t])=>`<button class="pil" data-f="${k}" aria-pressed="${f===k}">${t} <span class="tel">${lijst.filter(o=>hoort(o,k)).length}</span></button>`).join("")}</div>
   ${f==="fav"&&!lijst.some(o=>hoort(o,"fav"))?'<p class="mut" style="margin-bottom:10px">Outfits waarbij je na het dragen "Helemaal mij" kiest, komen hier vanzelf.</p>':""}
-  ${f==="idee"?ideeStapel(l):`<div class="outfit-raster">${l.map(o=>`<button class="kaart" data-o="${o.nr}"><div class="mini-pol n${Math.min(4,o.stukken.filter(id=>K[id]).length)}">${gesorteerd(o.stukken).filter(id=>K[id]).slice(0,4).map((id,i)=>`<span style="transform:rotate(${[-3,2,3,-2][i]}deg)"><img src="${K[id].foto}" alt=""></span>`).join("")}</div></button>`).join("")||(f==="fav"?"":`<div class="leeg-staat">Hier staat nog niks. Bewaar een idee of tik op Nieuwe combi.</div>`)}</div>`}`;
-  if(f==="idee") stapelGedrag(l);
+  ${f==="idee"?ideeStapel(l,tip):`<div class="outfit-raster">${l.map(o=>`<button class="kaart" data-o="${o.nr}"><div class="mini-pol n${Math.min(4,o.stukken.filter(id=>K[id]).length)}">${gesorteerd(o.stukken).filter(id=>K[id]).slice(0,4).map((id,i)=>`<span style="transform:rotate(${[-3,2,3,-2][i]}deg)"><img src="${K[id].foto}" alt=""></span>`).join("")}</div></button>`).join("")||(f==="fav"?"":`<div class="leeg-staat">Hier staat nog niks. Bewaar een idee of tik op Nieuwe combi.</div>`)}</div>`}`;
+  if(f==="idee") stapelGedrag(l,tip);
   app.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{outfits.f=b.dataset.f;outfits();});
   app.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>laagVoorLaag(b.dataset.o,"outfits"));
   $("#nieuwecombi").onclick=()=>combi();
 }
 // Ideeën als kaartjes: veeg naar rechts = bewaren, naar links = weg, tik = van dichtbij bekijken
-function ideeStapel(l){
+function ideeStapel(l,tip){
+  if(tip) return `<div class="stapel">${l[0]?`<div class="tafel kaartje achter" aria-hidden="true">${polaroids(l[0].stukken)}</div>`:""}${tipKaart(tip)}</div>
+  <div class="knoppen veeg"><button class="secundair rond" id="idee-nee" aria-label="Niks voor mij">${ICO.x}</button><span class="mut">Tip van Ta-daa!</span><button class="primair rond" id="idee-ja" aria-label="Op mijn lijstje"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>`;
   if(!l.length) return `<div class="leeg-staat"><b>Alle ideeën bekeken</b><br>Voeg meer kleding toe of zet een regel uit bij Dit ben ik, dan bedenkt de kast nieuwe.</div>`;
   return `<div class="stapel">${l[1]?`<div class="tafel kaartje achter" aria-hidden="true">${polaroids(l[1].stukken)}</div>`:""}
     <button class="tafel kaartje" id="kaartje" aria-label="Bekijk dit idee van dichtbij"><span class="stempel ja">Bewaren</span><span class="stempel nee">Weg</span>${polaroids(l[0].stukken)}<span class="open-hint">${ICO.wissel}Bekijk of wissel een stuk</span></button></div>
   <div class="knoppen veeg"><button class="secundair rond" id="idee-nee" aria-label="Weg, niet meer laten zien">${ICO.x}</button><span class="mut">${l.length} ${l.length===1?"idee":"ideeën"}</span><button class="primair rond" id="idee-ja" aria-label="Bewaren bij mijn outfits"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>`;
 }
-function stapelGedrag(l){
+function stapelGedrag(l,tip){
   const k=$("#kaartje"); if(!k) return; const o=l[0];
-  const klaar=ja=>{
+  const klaar=ja=>{ if(!tip) geveegd++;
     k.style.transition="transform .25s ease-out,opacity .25s"; k.style.transform=`translateX(${ja?120:-120}%) rotate(${ja?18:-18}deg)`; k.style.opacity="0";
     setTimeout(()=>{
+      if(tip) return tipKeuze(tip,ja);
       if(ja){const nr=bewaarIdee(o.nr);bewaar();_ideeCache=null;outfits();melding("Bewaard bij je outfits",()=>{S.extra=S.extra.filter(x=>String(x.nr)!==String(nr));});}
       else{S.wegIdee.push(o.sleutel);bewaar();_ideeCache=null;outfits();melding("Weg",()=>{S.wegIdee=S.wegIdee.filter(x=>x!==o.sleutel);});}
     },220);
@@ -857,9 +874,86 @@ function stapelGedrag(l){
     if(sleept&&Math.abs(dx)>90) return klaar(dx>0);
     k.style.transition="transform .2s ease-out"; k.style.transform=""; k.style.setProperty("--ja",0); k.style.setProperty("--nee",0); };
   k.addEventListener("pointerup",los); k.addEventListener("pointercancel",los);
-  k.addEventListener("click",e=>{ if(sleept){e.preventDefault();return;} laagVoorLaag(o.nr,"outfits"); });
+  k.addEventListener("click",e=>{ if(sleept){e.preventDefault();return;} tip?tipVel(tip):laagVoorLaag(o.nr,"outfits"); });
   $("#idee-ja").onclick=()=>klaar(true); $("#idee-nee").onclick=()=>klaar(false);
 }
+/* ================= 8b. Tip van Ta-daa: het gat in je kast ================= */
+const SIL={vest:"M30 8 L50 20 L70 8 L92 22 L98 70 L84 72 L82 44 L80 104 L54 104 L50 30 L46 104 L20 104 L18 44 L16 72 L2 70 L8 22 Z",
+  trui:"M32 10 Q50 20 68 10 L92 24 L98 80 L84 82 L80 42 L80 102 L20 102 L20 42 L16 82 L2 80 L8 24 Z",
+  blouse:"M32 10 L50 26 L68 10 L92 24 L96 62 L82 64 L80 40 L80 100 L20 100 L20 40 L18 64 L4 62 L8 24 Z",
+  "shirt/top":"M32 10 Q50 22 68 10 L92 22 L84 42 L78 38 L78 100 L22 100 L22 38 L16 42 L8 22 Z",
+  broek:"M26 6 L74 6 L80 104 L58 104 L50 40 L42 104 L20 104 Z", rok:"M32 12 L68 12 L88 100 L12 100 Z"};
+const TIP_SOORT={"shirt/top":"shirt"};
+const hexVan=c=>(PALET.find(p=>p[0]===c)||[])[1]||"#888";
+const silhouet=(t,cls="sil")=>`<svg class="${cls}" viewBox="0 0 100 110" aria-hidden="true"><path d="${SIL[t.soort]}" fill="${hexVan(t.kleur)}" stroke="rgba(0,0,0,.35)" stroke-width="2" stroke-linejoin="round"/></svg>`;
+const tipNaam=t=>`Een ${TIP_SOORT[t.soort]||SOORTNAAM[t.soort]} in ${t.kleur}`;
+const tipSleutel=t=>t.soort+"|"+t.kleur;
+let _tipCache=null,_tipSleutel="",geveegd=0;
+function gatTips(){ // welk stuk (soort + kleur) past bij de meeste dingen die je al hebt?
+  const sleutel=JSON.stringify([S.wegStuk,S.labels,S.profiel,S.tipWeg,S.lijstje,KAST.length,vandaagDatum()]);
+  if(_tipCache&&_tipSleutel===sleutel) return _tipCache;
+  const kast=kastNu().filter(k=>k.soort!=="schoenen"&&!k.nietInIdeeen);
+  if(kast.length<6){_tipCache=[];_tipSleutel=sleutel;return [];}
+  const soort=l=>kast.filter(k=>isSoort(k,l));
+  const tops=soort(["blouse","shirt/top","trui"]), onders=soort(["broek","rok"]), basis=soort(["jurk","jumpsuit"]);
+  const heeft=new Set(kast.flatMap(k=>soortenVan(k).map(x=>x+"|"+kleur(k.id))));
+  const lijkt=(s,c)=>kast.some(k=>isSoort(k,[s])&&FAMILIE[c]&&FAMILIE[kleur(k.id)]===FAMILIE[c]&&Math.abs(lichtheid(kleur(k.id))-lichtheid(c))<.15);   // bijna hetzelfde heb je al
+  const nee=new Set([...(S.tipWeg||[]),...(S.lijstje||[]).map(tipSleutel)]);
+  const neeKleur={}; (S.tipWeg||[]).forEach(x=>{const c=x.split("|")[1];neeKleur[c]=(neeKleur[c]||0)+1;});
+  const minder=KLEURTYPES[P().kleurtype]?.[2]||[];
+  const uit=[];
+  for(const s of Object.keys(SIL)){ if(!past({soort:s})) continue;
+    for(const [c] of PALET){
+      const t={soort:s,kleur:c};
+      if(heeft.has(tipSleutel(t))||nee.has(tipSleutel(t))||minder.includes(c)||(neeKleur[c]||0)>=2||(c==="denim"&&!["broek","rok"].includes(s))||lijkt(s,c)) continue;
+      K.__tip={id:"__tip",soort:s,kleuren:[c],naam:tipNaam(t),foto:""};
+      const met=new Map();
+      const test=(ids,partner)=>{ if(!regelsOk(ids)) return; met.set(partner,Math.max(met.get(partner)||0,1+voorkeur(ids))); };
+      if(["blouse","shirt/top","trui"].includes(s)) onders.forEach(o=>test(["__tip",o.id],o.id));
+      else if(["broek","rok"].includes(s)) tops.forEach(o=>test([o.id,"__tip"],o.id));
+      else { basis.forEach(b=>test([b.id,"__tip"],b.id)); tops.filter(o=>!o.geenVestErover).forEach(o=>test([o.id,"__tip"],o.id)); }
+      delete K.__tip;
+      if(met.size<4) continue;
+      const rij=[...met].sort((a,b)=>b[1]-a[1]);
+      uit.push({...t,aantal:met.size,met:rij.slice(0,6).map(x=>x[0]),s:rij.reduce((a,x)=>a+Math.max(0,x[1]),0)});
+    }
+  }
+  // afwisselen: om de beurt de beste van elke soort, zodat het niet steeds een vest is
+  const per={}; uit.sort((a,b)=>b.s-a.s).forEach(t=>(per[t.soort]??=[]).push(t));
+  const rijen=Object.values(per), lijst=[]; for(let i=0;rijen.some(r=>r[i]);i++) rijen.forEach(r=>r[i]&&lijst.push(r[i]));
+  const laatste=[...(S.tipWeg||[]),...(S.lijstje||[]).map(tipSleutel)].slice(-1)[0]?.split("|")[0];
+  _tipCache=lijst.filter(t=>t.soort!==laatste).concat(lijst.filter(t=>t.soort===laatste)); _tipSleutel=sleutel; return _tipCache;
+}
+function tipNu(){ // af en toe, tussen je ideeën: na een paar keer vegen, hooguit één keer per dag
+  if(geveegd<4||S.tipDag===vandaagDatum()) return null;
+  return gatTips()[0]||null;
+}
+const tipTekst=t=>`Dit stuk past bij ${t.aantal} dingen die je al hebt. Je kast roept erom, ik hoor het gewoon.`;
+function tipKaart(t){
+  return `<button class="tafel kaartje tipkaart" id="kaartje" aria-label="Tip van Ta-daa: ${esc(tipNaam(t))}. Tik voor meer"><span class="stempel ja">Op mijn lijstje</span><span class="stempel nee">Niks voor mij</span>
+    <span class="tip-label">Tip van Ta-daa!</span><span class="sil-held">${silhouet(t)}<span class="tip-badge">Past bij ${t.aantal}</span></span>
+    <h3>${esc(tipNaam(t))}</h3><p>${tipTekst(t)}</p><p style="font-size:13px;margin-top:6px">Veeg naar rechts voor je lijstje, of naar links als het niks voor je is.</p></button>`;
+}
+function tipKeuze(t,ja){
+  S.tipDag=vandaagDatum(); geveegd=0;
+  if(ja){S.lijstje=[...(S.lijstje||[]),{soort:t.soort,kleur:t.kleur,aantal:t.aantal,datum:vandaagDatum()}];bewaar();_tipCache=null;sluit();outfits();
+    melding("Op je lijstje gezet. Je vindt het bij Dit ben ik.",()=>{S.lijstje=S.lijstje.filter(x=>tipSleutel(x)!==tipSleutel(t));S.tipDag=null;});}
+  else{S.tipWeg=[...(S.tipWeg||[]),tipSleutel(t)];bewaar();_tipCache=null;sluit();outfits();
+    melding("Oké, die tip krijg je niet meer.",()=>{S.tipWeg=S.tipWeg.filter(x=>x!==tipSleutel(t));S.tipDag=null;});}
+}
+function tipVel(t){
+  vel(`<div class="vel-kop"><span class="tip-label">Tip van Ta-daa!</span><button class="sluit" aria-label="Sluiten">${ICO.x}</button></div><div class="tip-vel">${silhouet(t)}<h3>${esc(tipNaam(t))}</h3><p class="mut">${tipTekst(t)}</p>
+    <p class="mut" style="margin:12px 0 0;text-align:left;font-weight:700">Je kunt het combineren met</p>
+    <div class="tip-strook">${t.met.map(id=>`<img src="${K[id].foto}" alt="${esc(K[id].naam)}">`).join("")}</div>
+    <div class="knoppen"><button class="secundair" id="tip-nee">Niks voor mij</button><button class="primair" id="tip-ja">Op mijn lijstje</button></div></div>`);
+  $("#tip-ja").onclick=()=>tipKeuze(t,true); $("#tip-nee").onclick=()=>tipKeuze(t,false);
+}
+function lijstjeBlok(){
+  const l=S.lijstje||[], heeft=new Set(kastNu().flatMap(k=>soortenVan(k).map(x=>x+"|"+kleur(k.id))));
+  return `<div class="blok"><h2>Mijn lijstje</h2>${l.length?l.map((t,i)=>`<div class="lijstje">${silhouet(t)}<div><b>${esc(tipNaam(t))}</b><p class="mut" style="margin:0">${heeft.has(tipSleutel(t))?"Staat al in je kast. Goed bezig!":`Past bij ${t.aantal} dingen die je al hebt.`}</p></div><button data-lijst-weg="${i}">Verwijder</button></div>`).join("")
+    :'<p class="mut" style="margin:0">Hier komen de tips van Ta-daa die je bewaart. Je vindt ze af en toe tussen je ideeën.</p>'}</div>`;
+}
+
 let combiStukken=[];
 function combi(){
   const ids=gesorteerd(combiStukken), heeft=new Set(ids.map(id=>rolVan(id,ids)));
