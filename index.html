@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="description" content="Ta-daa: weet wat je in je kast hebt hangen, en krijg verrassende outfits. Alles blijft op je eigen telefoon.">
+<meta name="description" content="Ta-daa: vul je online kledingkast en krijg verrassende outfits voor je mood én het weer. En hangt er iets al maanden te verstoffen? Dan geeft Ta-daa je een duwtje om het weg te doen.">
 <meta name="theme-color" content="#f7f4ee" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#121416" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1102,7 +1102,7 @@ function labelVel(id){ // gevoel en details van een stuk aanpassen
 const isApp=()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;}catch(e){return false;}};
 const isIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent||"")||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
 const isAndroid=()=>/Android/.test(navigator.userAgent||"");
-const WAT_IS_TADAA=`<p class="wat">Met deze app weet je wat je in je kast hebt hangen, en krijg je verrassende outfits.</p><p class="mut">Alles wordt op je eigen telefoon opgeslagen.</p>`;
+const WAT_IS_TADAA=`<p class="wat">Vul je online kledingkast en krijg verrassende outfits voor je mood én het weer. En hangt er iets al maanden te verstoffen? Dan geeft Ta-daa je een duwtje om het weg te doen.</p><p class="mut">Alles wordt op je eigen telefoon opgeslagen.</p>`;
 // Eerst: zet Ta-daa op je beginscherm (zoals HopHap). Pas in de app zelf volgt de handleiding.
 const moetEerstBeginscherm=()=>{try{return SITE&&!isApp()&&!localStorage.getItem("tadaa-browser");}catch(e){return false;}};
 function beginschermStappen(){ // zoals HopHap: nummer, icoontje, korte zin
@@ -1117,7 +1117,7 @@ function beginschermStappen(){ // zoals HopHap: nummer, icoontje, korte zin
 }
 function beginscherm(){
   app.innerHTML=`<div class="midden"><img class="app-icoon" src="icon-192.png" alt=""><h1 class="welkom-kop">Hoi, welkom bij Ta-daa!</h1>
-    <p class="wat">Weet wat je in je kast hebt hangen, en krijg verrassende outfits. Alles blijft op je telefoon.</p>
+    <p class="wat">Vul je online kledingkast en krijg verrassende outfits voor je mood én het weer. En hangt er iets al maanden te verstoffen? Dan geeft Ta-daa je een duwtje om het weg te doen. Alles blijft op je telefoon.</p>
     <p class="mut">Zet Ta-daa eerst op je beginscherm. Dan werkt hij als een echte app en blijft je kast bewaard.</p></div>
   ${beginschermStappen()}
   <button class="link" id="browser">Liever in de browser gebruiken</button>`;
@@ -1126,7 +1126,7 @@ function beginscherm(){
 }
 const TOUR=[ // volgt de menubalk: eerst je kast vullen, dan de rest
   {tab:"kast",doel:"#plus",kop:"Voeg je kleding toe",tekst:"Maak een foto van één kledingstuk, het liefst op een effen ondergrond. Of maak screenshots van je online aankopen."},
-  {tab:"kast",doel:'nav [data-tab="kast"]',kop:"Na het toevoegen komt je kleding hier",tekst:"Blader door je kast en vertel per stuk wat het is. Hoe meer je invult, hoe beter Ta‑daa voor je werkt."},
+  {tab:"kast",doel:'nav [data-tab="kast"]',kop:"Dit is je kast",tekst:"Label je kleding en laat Ta‑daa je ondersteunen."},
   {tab:"vandaag",doel:'nav [data-tab="vandaag"]',kop:"Laat je verrassen",tekst:"Kies hier het weer en waar je zin in hebt. Ta‑daa stelt dan een outfit voor."},
   {tab:"outfits",doel:'nav [data-tab="outfits"]',kop:"Optioneel: vertel hoe het voelde",tekst:"Na het dragen vraagt Ta‑daa hoe je outfit voelde. Zo leert de app wat bij je past. Al je outfits staan hier."},
   {tab:"ik",doel:'nav [data-tab="ik"]',kop:"Hier pas je alles aan",tekst:"Je antwoorden van daarnet, je kleurtype en je eigen regels. Ook je back-up vind je hier."}];
