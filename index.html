@@ -318,8 +318,10 @@ select{width:100%;font:inherit;font-size:14px;border:1.5px solid var(--lijn);bor
 .kies-rij img{width:92px;height:112px;object-fit:cover;background:var(--foto);border-radius:12px;display:block;border:2px solid transparent}
 .kies-rij button[aria-pressed="true"] img{border-color:var(--accent)}
 .kies-rij span{font-size:11.5px;display:block;line-height:1.2;margin-top:3px}
-.melding{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--inkt);color:var(--bg);padding:10px 16px;border-radius:14px;font-size:14px;z-index:30;max-width:90vw}
-.melding button{font-weight:700;text-decoration:underline;margin-left:8px}
+.melding{position:fixed;left:16px;right:16px;margin:0 auto;width:max-content;max-width:min(calc(100vw - 32px),480px);bottom:calc(var(--nav-h,70px) + 12px);background:var(--inkt);color:var(--bg);padding:11px 16px;border-radius:14px;font-size:14.5px;line-height:1.35;z-index:30;display:flex;align-items:center;gap:14px;box-shadow:0 10px 24px -12px rgba(0,0,0,.5)}
+.melding[hidden]{display:none}
+.melding span{flex:1;min-width:0}
+.melding button{flex:none;font-weight:700;text-decoration:underline;color:inherit;white-space:nowrap}
 nav{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--vlak);border-top:1px solid var(--lijn);padding:6px max(8px,env(safe-area-inset-left,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-right,0px))}
 nav div{display:flex;max-width:520px;margin:0 auto}
 nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px;font-size:11.5px;font-weight:700;color:var(--mut);border-radius:12px}
@@ -1413,7 +1415,7 @@ const groet=()=>{const u=new Date().getHours();return (u<12?"Goeiemorgen":u<18?"
 function labelTekst(ids){const s=new Set(ids.flatMap(tags));return BEHOEFTES.filter(b=>s.has(b[0])).map(b=>b[1].toLowerCase()).join(" · ");}
 const gesorteerd=ids=>[...ids].sort((a,b)=>VOLGORDE.indexOf(rolVan(a,ids))-VOLGORDE.indexOf(rolVan(b,ids)));
 function melding(t,ongedaan){ // korte melding onderin, eventueel met 'Ongedaan maken'
-  const m=$("#melding"); m.innerHTML=esc(t)+(ongedaan?'<button id="ongedaan">Ongedaan maken</button>':"");
+  const m=$("#melding"); m.innerHTML=`<span>${esc(t)}</span>`+(ongedaan?'<button id="ongedaan">Ongedaan maken</button>':"");
   m.hidden=false; clearTimeout(m._t); m._t=setTimeout(()=>m.hidden=true,ongedaan?5000:2400);
   if(ongedaan) $("#ongedaan").onclick=()=>{ongedaan();bewaar();_ideeCache=null;m.hidden=true;toon(false);};
 }
