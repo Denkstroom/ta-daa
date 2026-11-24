@@ -165,9 +165,16 @@ button.toggle[aria-pressed="true"] i::after,button.regel[aria-pressed="true"] i:
 .politie{background:var(--accent-zacht);border-radius:16px;padding:10px 14px;margin:-4px 0 12px;font-size:14.5px}
 .politie b{display:block;font-size:12px;color:var(--mut);font-weight:700}
 .tipkaart{border:2px solid var(--ster1);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:16px;gap:4px;color:var(--inkt)}
+.tipkaart::before{background:radial-gradient(circle at 50% 36%,rgba(255,159,82,.55),transparent 42%),radial-gradient(circle at 15% 90%,var(--gloed1),transparent 40%),radial-gradient(circle at 90% 10%,var(--gloed3),transparent 40%)}
 .tip-label{color:var(--ster1);font-weight:800;font-size:13px}
+.tipkaart .tip-label{margin-bottom:10px;background:var(--ster1);color:#2a1406;border-radius:99px;padding:6px 14px;font-size:14px;box-shadow:0 6px 16px -8px rgba(255,140,60,.8);transform:rotate(-3deg)}
+.straal{position:absolute;left:-40%;right:-40%;top:calc(38% - 90vw);height:180vw;max-height:none;z-index:-1;pointer-events:none;opacity:.22;
+  background:repeating-conic-gradient(from 0deg,var(--ster1) 0 6deg,transparent 6deg 18deg);-webkit-mask:radial-gradient(circle,#000 0,#000 8%,transparent 26%);mask:radial-gradient(circle,#000 0,#000 8%,transparent 26%)}
+.snipper{position:absolute;width:7px;height:12px;border-radius:2px;pointer-events:none;z-index:8}
+@media (prefers-reduced-motion:no-preference){.straal{animation:draai 24s linear infinite}@keyframes draai{to{transform:rotate(360deg)}}
+  .tipkaart .sil{animation:wiebel 2.8s ease-in-out infinite}@keyframes wiebel{0%,100%{transform:rotate(-3deg)}50%{transform:rotate(3deg) translateY(-4px)}}}
 .sil{width:130px;height:140px;display:block;filter:drop-shadow(0 8px 14px rgba(0,0,0,.25))}
-.sil-held{position:relative}.tip-badge{position:absolute;right:-34px;top:2px;background:var(--ster1);color:#2a1406;font-weight:800;font-size:12px;border-radius:99px;padding:4px 10px;white-space:nowrap}
+.sil-held{position:relative}.tip-badge{position:absolute;right:-40px;bottom:8px;background:var(--ster1);color:#2a1406;font-weight:800;font-size:12px;border-radius:99px;padding:4px 10px;white-space:nowrap}
 .tipkaart h3,.tip-vel h3{margin:6px 0 0;font-size:20px}.tipkaart p{margin:0;font-size:14.5px;color:var(--mut);max-width:300px}
 .tip-strook{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:8px 0 14px}.tip-strook img{width:100%;aspect-ratio:3/4;object-fit:contain;background:var(--foto);border-radius:10px}
 .tip-vel{text-align:center}.tip-vel .sil{margin:0 auto}
@@ -289,6 +296,14 @@ input[type=range]{width:100%;margin:8px 0 0;accent-color:var(--accent);height:28
 .regel[aria-pressed="true"] i::after{left:17px}
 .nooit{display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:center;margin:8px 0}
 select{width:100%;font:inherit;font-size:14px;border:1.5px solid var(--lijn);border-radius:12px;padding:10px;background:var(--vlak);color:var(--inkt)}
+.profiel{display:flex;gap:12px;align-items:center;background:linear-gradient(135deg,var(--accent-zacht),var(--vlak));border-radius:20px;padding:14px;margin-bottom:12px}
+.profiel b{font-size:17px;display:block}.profiel small{color:var(--mut);font-size:13px}
+.profiel-ico{flex:none;width:44px;height:44px;border-radius:50%;background:var(--ster1);color:#2a1406;display:grid;place-items:center}.profiel-ico .ico{width:24px;height:24px}
+.menu-groep{background:var(--vlak);border-radius:18px;overflow:hidden;margin-bottom:12px}
+.menu-rij{display:grid;grid-template-columns:32px 1fr auto;gap:12px;align-items:center;width:100%;text-align:left;padding:12px 14px;border-top:1px solid var(--lijn)}.menu-rij:first-child{border-top:0}
+.menu-rij b{display:block;font-size:15px}.menu-rij small{display:block;color:var(--mut);font-size:13px}
+.menu-ico{width:32px;height:32px;border-radius:10px;background:var(--accent-zacht);color:var(--accent);display:grid;place-items:center}.menu-ico .ico{width:18px;height:18px}
+.menu-rij .pijl{color:var(--mut);font-size:20px}.menu-rij .getal{background:var(--ster1);color:#2a1406;font-weight:800;font-size:12px;border-radius:99px;padding:2px 9px}
 .eigen{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--lijn);font-size:14.5px}
 .eigen button{color:var(--mut);text-decoration:underline;font-size:13px}
 
@@ -658,33 +673,59 @@ function favoriet(o){const g=S.gedragen.filter(x=>String(x.nr)===o.nr&&x.klaar).
 const POP='<svg viewBox="0 0 220 330" aria-hidden="true"><circle cx="110" cy="34" r="22"/><path d="M74 66 Q110 56 146 66 L164 78 L182 168 L168 171 L150 104 L146 168 Q158 200 155 222 L146 322 L122 322 L113 230 L107 230 L98 322 L74 322 L65 222 Q62 200 74 168 L70 104 L52 171 L38 168 L56 78 Z"/></svg>';
 const ZONEPLEK={schouders:[150,70],armen:[36,128],decollete:[110,96],rug:[188,110],taille:[110,160],heupen:[44,206],benen:[110,268]};
 const STANDEN=["ja","mm","nee"];
+const ICO_IK={lijst:'<svg class="ico" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
+  zien:'<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="6" r="3"/><path d="M6 21l2-9h8l2 9M8 12l-3 4M16 12l3 4"/></svg>',
+  kleur:'<svg class="ico" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.5 0 2-1 2-2s-1-1.5-1-2.5S14 15 15 15h2a4 4 0 0 0 4-4c0-4.4-4-8-9-8z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7.5" r="1"/></svg>',
+  kleding:'<svg class="ico" viewBox="0 0 24 24"><path d="M12 6a2 2 0 1 1 2 2c-1 0-2 .7-2 1.8V11M12 11 3.5 17.5c-1 .8-.5 2.5.8 2.5h15.4c1.3 0 1.8-1.7.8-2.5z"/></svg>',
+  regels:'<svg class="ico" viewBox="0 0 24 24"><path d="M4 7l2 2 3-3M4 15l2 2 3-3M12 8h8M12 16h8"/></svg>',
+  over:'<svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17h.01"/></svg>'};
+const AFDELING=[["dames","Dameskleding"],["heren","Herenkleding"],["allebei","Allebei"]];
 function ik(){
   const p=P(), mag=(z)=>p.zones[z]||"mm";
   const kt=KLEURTYPES[p.kleurtype]||KLEURTYPES.onbekend;
   const opties=[...PALET.map(([n])=>["k:"+n,n]),...kastNu().filter(k=>k.soort!=="schoenen").map(k=>["s:"+k.id,k.naam])];
   const naam=w=>w.startsWith("k:")?w.slice(2):(K[w.slice(2)]?.naam||"?");
-  app.innerHTML=`<h1>Dit ben ik</h1>
-  <div class="blok"><h2>Welke kleding draag je?</h2><p class="mut">Hiermee kiest de app welke soorten kleding en welke woorden hij gebruikt.</p>
-    <div class="pillen">${[["dames","Dameskleding"],["heren","Herenkleding"],["allebei","Allebei"]].map(([k,t])=>`<button class="pil" data-afd="${k}" aria-pressed="${p.afdeling===k}">${t}</button>`).join("")}</div></div>
-  <div class="blok"><h2>Wat laat je graag zien?</h2><p class="mut">Er is geen goed of fout. Het gaat erom waar jij je fijn in voelt. Tik een plek om te wisselen.</p>
-    <div class="pop">${POP}${zones().map(([z,t])=>`<button class="zone" data-zone="${z}" data-stand="${mag(z)}" style="left:${ZONEPLEK[z][0]}px;top:${ZONEPLEK[z][1]}px" aria-label="${t}: ${({ja:"laat ik graag zien",mm:"maakt niet uit",nee:"liever bedekt"})[mag(z)]}">${t}</button>`).join("")}</div>
-    <div class="legenda"><span><i style="background:var(--accent)"></i>laat ik graag zien</span><span><i style="background:var(--vlak);border:1.5px solid var(--lijn)"></i>maakt niet uit</span><span><i style="border:1.5px dashed var(--mut)"></i>liever bedekt</span></div></div>
-  <div class="blok"><h2>Kleurtype</h2><p class="mut">${kt[0]}: ${kt[1]}.${kt[2].length?` Minder vaak: ${kt[2].join(", ")}.`:""}</p>
-    <div class="pillen">${Object.entries(KLEURTYPES).map(([k,v])=>`<button class="pil" data-kt="${k}" aria-pressed="${p.kleurtype===k}">${v[0]}</button>`).join("")}</div></div>
-  ${lijstjeBlok()}
-  ${suggesties().slice(0,1).map(x=>`<div class="blok" style="border:1.5px solid var(--accent)"><h2>De kast merkte iets op</h2><p class="mut">Je haalde ${x.n} keer ${x.paar[0]} met ${x.paar[1]} weg. Wil je die nooit meer samen zien?</p>
-    <div class="knoppen" style="margin:0"><button class="secundair" data-sug-nee="${x.paar.join("+")}">Nee</button><button class="primair" data-sug-ja="${x.paar.join("+")}">Ja, nooit samen</button></div></div>`).join("")}
-  ${(TYPEREGELS[p.kleurtype]||[]).length?`<div class="blok"><h2>Regels bij ${kt[0].toLowerCase()}</h2><p class="mut">Deze horen bij je kleurtype en komen er vanzelf bij.</p>
-    ${TYPEREGELS[p.kleurtype].map(r=>`<button class="regel" data-regel="${r.id}" aria-pressed="${regelAan(r.id)}"><span>${r.tekst}</span><i></i></button>`).join("")}</div>`:""}
-  ${["Kleur","Combineren","Voorkeur"].map(g=>`<div class="blok"><h2>Regels: ${g.toLowerCase()}</h2>${g==="Voorkeur"?'<p class="mut">Deze verbieden niks, ze zetten een outfit hoger of lager.</p>':""}
-    ${REGELS.filter(r=>r.groep===g).map(r=>`<button class="regel" data-regel="${r.id}" aria-pressed="${regelAan(r.id)}"><span>${r.tekst}</span><i></i></button>`).join("")}</div>`).join("")}
-  <div class="blok"><h2>Mijn eigen regels: nooit samen</h2><p class="mut">Kies twee kleuren of kledingstukken die je nooit samen wilt zien.</p>
-    ${p.nooit.map((r,i)=>`<div class="eigen"><span>${esc(naam(r.a))} + ${[].concat(r.b).map(b=>esc(naam(b))).join(", ")}</span><button data-weg-regel="${i}">Verwijder</button></div>`).join("")}
-    <div class="nooit"><select id="nooit-a" aria-label="Eerste kleur of kledingstuk"><option value="">Kies…</option><optgroup label="Kleuren">${opties.filter(o=>o[0].startsWith("k:")).map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</optgroup><optgroup label="Kledingstukken">${opties.filter(o=>o[0].startsWith("s:")).map(o=>`<option value="${o[0]}">${esc(o[1])}</option>`).join("")}</optgroup></select>
-    <span class="mut">met</span><select id="nooit-b" aria-label="Tweede kleur of kledingstuk"><option value="">Kies…</option><optgroup label="Kleuren">${opties.filter(o=>o[0].startsWith("k:")).map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</optgroup><optgroup label="Kledingstukken">${opties.filter(o=>o[0].startsWith("s:")).map(o=>`<option value="${o[0]}">${esc(o[1])}</option>`).join("")}</optgroup></select></div>
-    <button class="secundair" id="nooit-voeg" style="width:100%">Voeg regel toe</button></div>
-  ${SITE?`<div class="blok"><h2>Over Ta-daa</h2>
-    ${[["rondleiding","Uitleg nog eens bekijken"],["werkt","Hoe werkt Ta-daa?"],["scherm","Zet Ta-daa op je beginscherm"],["privacy","Privacy: waar blijven je gegevens?"],["backup","Back-up maken of terugzetten"],["wissen","Verwijder al mijn gegevens"]].map(([k,t])=>`<button class="regel" data-uitleg="${k}"><span>${t}</span><span class="mut">›</span></button>`).join("")}</div>`:""}`;
+  const afdNaam=p.afdeling==="allebei"?"Dames- en herenkleding":(AFDELING.find(a=>a[0]===p.afdeling)||AFDELING[0])[1];
+  const zienJa=zones().filter(([z])=>mag(z)==="ja").map(([,t])=>t.toLowerCase()), zienNee=zones().filter(([z])=>mag(z)==="nee").map(([,t])=>t.toLowerCase());
+  const lijst=(a)=>a.length>1?a.slice(0,-1).join(", ")+" en "+a.slice(-1):a.join("");
+  const regels=alleRegels(), aan=regels.filter(r=>regelAan(r.id)).length;
+  const sug=suggesties().slice(0,1).map(x=>`<div class="blok" style="border:1.5px solid var(--accent)"><h2>De kast merkte iets op</h2><p class="mut">Je haalde ${x.n} keer ${x.paar[0]} met ${x.paar[1]} weg. Wil je die nooit meer samen zien?</p>
+    <div class="knoppen" style="margin:0"><button class="secundair" data-sug-nee="${x.paar.join("+")}">Nee</button><button class="primair" data-sug-ja="${x.paar.join("+")}">Ja, nooit samen</button></div></div>`).join("");
+  const kies=id=>`<select id="${id}" aria-label="${id==="nooit-a"?"Eerste":"Tweede"} kleur of kledingstuk"><option value="">Kies…</option><optgroup label="Kleuren">${opties.filter(o=>o[0].startsWith("k:")).map(o=>`<option value="${o[0]}">${o[1]}</option>`).join("")}</optgroup><optgroup label="Kledingstukken">${opties.filter(o=>o[0].startsWith("s:")).map(o=>`<option value="${o[0]}">${esc(o[1])}</option>`).join("")}</optgroup></select>`;
+  const knop=r=>`<button class="regel" data-regel="${r.id}" aria-pressed="${regelAan(r.id)}"><span>${r.tekst}</span><i></i></button>`;
+  const PAG={
+    lijstje:["Mijn lijstje",lijstjeBlok().replace('<h2>Mijn lijstje</h2>','')],
+    zien:["Wat laat je graag zien?",`<div class="blok"><p class="mut">Er is geen goed of fout. Het gaat erom waar jij je fijn in voelt. Tik een plek om te wisselen.</p>
+      <div class="pop">${POP}${zones().map(([z,t])=>`<button class="zone" data-zone="${z}" data-stand="${mag(z)}" style="left:${ZONEPLEK[z][0]}px;top:${ZONEPLEK[z][1]}px" aria-label="${t}: ${({ja:"laat ik graag zien",mm:"maakt niet uit",nee:"liever bedekt"})[mag(z)]}">${t}</button>`).join("")}</div>
+      <div class="legenda"><span><i style="background:var(--accent)"></i>laat ik graag zien</span><span><i style="background:var(--vlak);border:1.5px solid var(--lijn)"></i>maakt niet uit</span><span><i style="border:1.5px dashed var(--mut)"></i>liever bedekt</span></div></div>`],
+    kleurtype:["Kleurtype",`<div class="blok"><p class="mut">${kt[0]}: ${kt[1]}.${kt[2].length?` Minder vaak: ${kt[2].join(", ")}.`:""}</p>
+      <div class="pillen">${Object.entries(KLEURTYPES).map(([k,v])=>`<button class="pil" data-kt="${k}" aria-pressed="${p.kleurtype===k}">${v[0]}</button>`).join("")}</div></div>`],
+    kleding:["Welke kleding draag je?",`<div class="blok"><p class="mut">Hiermee kiest de app welke soorten kleding en welke woorden hij gebruikt.</p>
+      <div class="pillen">${AFDELING.map(([k,t])=>`<button class="pil" data-afd="${k}" aria-pressed="${p.afdeling===k}">${t}</button>`).join("")}</div></div>`],
+    regels:["Mijn regels",`<p class="mut" style="margin:-4px 0 12px">Ta-daa houdt zich aan deze regels als hij outfits voor je bedenkt. Zet uit wat niet bij je past.</p>${sug}
+      ${(TYPEREGELS[p.kleurtype]||[]).length?`<div class="blok"><h2>Bij ${kt[0].toLowerCase()}</h2><p class="mut">Deze horen bij je kleurtype en komen er vanzelf bij.</p>${TYPEREGELS[p.kleurtype].map(knop).join("")}</div>`:""}
+      ${["Kleur","Combineren","Voorkeur"].map(g=>`<div class="blok"><h2>${g}</h2>${g==="Voorkeur"?'<p class="mut">Deze verbieden niks, ze zetten een outfit hoger of lager.</p>':""}${REGELS.filter(r=>r.groep===g).map(knop).join("")}</div>`).join("")}
+      <div class="blok"><h2>Nooit samen</h2><p class="mut">Jouw eigen regels. Kies twee kleuren of kledingstukken die je nooit samen wilt zien.</p>
+      ${p.nooit.map((r,i)=>`<div class="eigen"><span>${esc(naam(r.a))} + ${[].concat(r.b).map(b=>esc(naam(b))).join(", ")}</span><button data-weg-regel="${i}">Verwijder</button></div>`).join("")}
+      <div class="nooit">${kies("nooit-a")}<span class="mut">met</span>${kies("nooit-b")}</div>
+      <button class="secundair" id="nooit-voeg" style="width:100%">Voeg regel toe</button></div>`],
+    over:["Over Ta-daa",`<div class="blok">${[["rondleiding","Uitleg nog eens bekijken"],["werkt","Hoe werkt Ta-daa?"],["scherm","Zet Ta-daa op je beginscherm"],["privacy","Privacy: waar blijven je gegevens?"],["backup","Back-up maken of terugzetten"],["wissen","Verwijder al mijn gegevens"]].map(([k,t])=>`<button class="regel" data-uitleg="${k}"><span>${t}</span><span class="mut">›</span></button>`).join("")}</div>`]};
+  if(ik.sub==="over"&&!SITE) ik.sub=null;
+  const rij=(k,ico,t,sub,extra)=>`<button class="menu-rij" data-ik="${k}"><span class="menu-ico">${ico}</span><span><b>${t}</b><small>${sub}</small></span>${extra||'<span class="pijl" aria-hidden="true">›</span>'}</button>`;
+  const n=(S.lijstje||[]).length;
+  if(PAG[ik.sub]){ app.innerHTML=`<button class="terug" id="ik-terug">${ICO.terug}Dit ben ik</button><h1>${PAG[ik.sub][0]}</h1>${PAG[ik.sub][1]}`; }
+  else { ik.sub=null; app.innerHTML=`<h1>Dit ben ik</h1>
+    <div class="profiel"><span class="profiel-ico">${ICO_IK.kleding}</span><div><b>${kt[0]}</b><small>${afdNaam} · ${kt[1]}</small></div></div>
+    ${sug}
+    <div class="menu-groep">
+      ${rij("lijstje",ICO_IK.lijst,"Mijn lijstje",n?`${n} ${n===1?"tip":"tips"} bewaard`:"Hier komen de tips die je bewaart",n?`<span class="getal">${n}</span>`:"")}
+      ${rij("zien",ICO_IK.zien,"Wat laat je graag zien?",zienJa.length?lijst(zienJa).replace(/^./,c=>c.toUpperCase()):zienNee.length?"Liever bedekt: "+lijst(zienNee):"Maakt je niet uit")}
+      ${rij("kleurtype",ICO_IK.kleur,"Kleurtype",kt[0])}
+      ${rij("kleding",ICO_IK.kleding,"Welke kleding draag je?",afdNaam)}</div>
+    <div class="menu-groep">${rij("regels",ICO_IK.regels,"Mijn regels",`${aan} van de ${regels.length} staan aan${p.nooit.length?`, en ${p.nooit.length} ${p.nooit.length===1?"eigen regel":"eigen regels"}`:""}`)}</div>
+    ${SITE?`<div class="menu-groep">${rij("over",ICO_IK.over,"Over Ta-daa","Uitleg, privacy en back-up")}</div>`:""}`; }
+  app.querySelectorAll("[data-ik]").forEach(b=>b.onclick=()=>{ik.sub=b.dataset.ik;ik();scrollTo(0,0);});
+  if($("#ik-terug")) $("#ik-terug").onclick=()=>{ik.sub=null;ik();scrollTo(0,0);};
   app.querySelectorAll("[data-uitleg]").forEach(b=>b.onclick=()=>b.dataset.uitleg==="rondleiding"?startTour():uitleg(b.dataset.uitleg));
   const zet=f=>{S.profiel=p;f(p);bewaar();_ideeCache=null;const y=scrollY;ik();scrollTo(0,y);};
   app.querySelectorAll("[data-afd]").forEach(b=>b.onclick=()=>zet(p=>p.afdeling=b.dataset.afd));
@@ -695,7 +736,7 @@ function ik(){
   app.querySelectorAll("[data-sug-nee]").forEach(b=>b.onclick=()=>zet(p=>{p.genegeerd=[...(p.genegeerd||[]),b.dataset.sugNee];}));
   app.querySelectorAll("[data-lijst-weg]").forEach(b=>b.onclick=()=>{const i=+b.dataset.lijstWeg,x=S.lijstje[i];zet(()=>S.lijstje.splice(i,1));melding("Van je lijstje gehaald",()=>{S.lijstje.splice(i,0,x);});});
   app.querySelectorAll("[data-weg-regel]").forEach(b=>b.onclick=()=>zet(p=>p.nooit.splice(+b.dataset.wegRegel,1)));
-  $("#nooit-voeg").onclick=()=>{const a=$("#nooit-a").value,b=$("#nooit-b").value;
+  if($("#nooit-voeg")) $("#nooit-voeg").onclick=()=>{const a=$("#nooit-a").value,b=$("#nooit-b").value;
     if(!a||!b||a===b){melding("Kies twee verschillende dingen");return;}
     zet(p=>p.nooit.push({a,b})); melding("Regel toegevoegd. De ideeën zijn bijgewerkt.");};
 }
@@ -930,7 +971,9 @@ function tipNu(){ // af en toe, tussen je ideeën: na een paar keer vegen, hoogu
 }
 const tipTekst=t=>`Dit stuk past bij ${t.aantal} dingen die je al hebt. Je kast roept erom, ik hoor het gewoon.`;
 function tipKaart(t){
-  return `<button class="tafel kaartje tipkaart" id="kaartje" aria-label="Tip van Ta-daa: ${esc(tipNaam(t))}. Tik voor meer"><span class="stempel ja">Op mijn lijstje</span><span class="stempel nee">Niks voor mij</span>
+  const sterren=[[8,8,20,1],[88,10,14,2],[92,52,18,1],[6,48,12,2],[14,90,16,1],[86,88,12,2],[30,18,9,2],[72,22,10,1],[50,4,8,2],[64,94,9,1]].map(([x,y,sz,c])=>`<span class="ster" style="left:${x}%;top:${y}%;width:${sz}px;height:${sz}px;background:var(--ster${c})"></span>`).join("");
+  const snippers=[[18,30,-30,"#ff9f52"],[82,36,25,"#5fd3b4"],[8,62,40,"#e2337f"],[90,62,-20,"#ffd27a"],[36,10,60,"#5fd3b4"],[30,93,-50,"#ff9f52"],[22,80,15,"#ffd27a"],[76,94,70,"#e2337f"]].map(([x,y,r,c])=>`<span class="snipper" style="left:${x}%;top:${y}%;background:${c};transform:rotate(${r}deg)"></span>`).join("");
+  return `<button class="tafel kaartje tipkaart" id="kaartje" aria-label="Tip van Ta-daa: ${esc(tipNaam(t))}. Tik voor meer"><span class="straal"></span>${sterren}${snippers}<span class="stempel ja">Op mijn lijstje</span><span class="stempel nee">Niks voor mij</span>
     <span class="tip-label">Tip van Ta-daa!</span><span class="sil-held">${silhouet(t)}<span class="tip-badge">Past bij ${t.aantal}</span></span>
     <h3>${esc(tipNaam(t))}</h3><p>${tipTekst(t)}</p><p style="font-size:13px;margin-top:6px">Veeg naar rechts voor je lijstje, of naar links als het niks voor je is.</p></button>`;
 }
@@ -1225,7 +1268,7 @@ const TOUR=[ // volgt de menubalk: eerst je kast vullen, dan de rest
   {tab:"outfits",doel:'nav [data-tab="outfits"]',kop:"Optioneel: vertel hoe het voelde",tekst:"Na het dragen vraagt Ta‑daa hoe je outfit voelde. Zo leert de app wat bij je past. Al je outfits staan hier."},
   {tab:"ik",doel:'nav [data-tab="ik"]',kop:"Hier pas je alles aan",tekst:"Je antwoorden van daarnet, je kleurtype en je eigen regels. Ook je back-up vind je hier."}];
 let TS=-1;
-function startTour(){ TS=0; tekenTour(); }
+function startTour(){ TS=0; ik.sub=null; tekenTour(); }
 function tourVolgende(klaar){
   if(klaar||TS>=TOUR.length-1){ TS=-1; S.welkom=true; bewaar(); $("#tour").hidden=true; $("#tour").innerHTML=""; tab="kast"; kast.w="kast"; toon(); melding("Veel plezier met Ta-daa!"); return; }
   TS++; tekenTour();
@@ -1287,7 +1330,7 @@ function instellen(i=0){
 }
 function welkom(){ setTimeout(startTour,50); app.innerHTML=""; }
 function uitleg(onderwerp,van="ik"){
-  const terug=`<button class="terug" id="terug">${ICO.terug}Dit ben ik</button>`;
+  const terug=`<button class="terug" id="terug">${ICO.terug}${ik.sub==="over"?"Over Ta-daa":"Dit ben ik"}</button>`;
   const T={
     werkt:`<h1>Hoe werkt Ta-daa?</h1>${WAT_IS_TADAA}${stappenHtml()}<p class="mut">Ta-daa gebruikt geen AI. Alle voorstellen komen uit regels en uit wat jij zelf aangeeft.</p>`,
     scherm:`<h1>Zet Ta-daa op je beginscherm</h1>
@@ -1385,7 +1428,7 @@ function toon(scroll=true){ markeerMenu(); SCHERMEN[tab](); document.querySelect
 function navMaat(){const n=document.querySelector("nav");if(n&&!n.hidden)document.documentElement.style.setProperty("--nav-h",n.offsetHeight+"px");}
 function eindeCheck(){const v=document.querySelector(".vastonder");if(v)v.classList.toggle("einde",innerHeight+scrollY>=document.documentElement.scrollHeight-30);}
 addEventListener("resize",()=>{navMaat();eindeCheck();});addEventListener("scroll",eindeCheck,{passive:true});
-document.querySelectorAll("nav [data-tab]").forEach(b=>b.onclick=()=>{werk=null;tab=b.dataset.tab;toon();});
+document.querySelectorAll("nav [data-tab]").forEach(b=>b.onclick=()=>{werk=null;tab=b.dataset.tab;if(tab==="ik")ik.sub=null;toon();});
 opstarten();
 </script>
 <script>if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});</script>
