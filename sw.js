@@ -1,5 +1,5 @@
-// Ta-daa offline-hulpje. Versie 20261124145743
-const C="tadaa-20261124145743";
+// Ta-daa offline-hulpje. Versie 20261124150834
+const C="tadaa-20261124150834";
 const FILES=["./","index.html","manifest.webmanifest","icon-180.png","icon-192.png","icon-512.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(FILES)));self.skipWaiting();});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))));self.clients.claim();});

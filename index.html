@@ -877,7 +877,12 @@ function tips(ids){ // de kast legt uit wat jouw regels van een combi vinden
 function outfits(){
   const f=["mijn","fav","idee"].includes(outfits.f)?outfits.f:"mijn", lijst=alle(), tip=f==="idee"?tipNu():null;
   const hoort=(o,k)=>k==="idee"?o.idee:k==="fav"?(!o.idee&&favoriet(o)):!o.idee;
-  const l=lijst.filter(o=>hoort(o,f)).sort((a,b)=>(a.idee-b.idee)||(+a.nr-+b.nr));
+  let l=lijst.filter(o=>hoort(o,f)).sort((a,b)=>(a.idee-b.idee)||(+a.nr-+b.nr));
+  if(f==="idee"){ // vaste volgorde tijdens het vegen: het kaartje dat erachter ligt, komt daarna ook echt bovenop
+    const plek=new Map(stapelVolgorde.map((nr,i)=>[nr,i]));
+    l=[...l.filter(o=>plek.has(o.nr)).sort((a,b)=>plek.get(a.nr)-plek.get(b.nr)),...l.filter(o=>!plek.has(o.nr))];
+    stapelVolgorde=l.map(o=>o.nr);
+  }
   app.innerHTML=`<div class="kop"><h1>Mijn outfits</h1><button class="toevoeg" id="nieuwecombi">${ICO_EXTRA.lagen}Nieuwe combi</button></div>
   <div class="filters">${[["mijn","Mijn outfits"],["fav","Favorieten"],["idee","Ideeën"]].map(([k,t])=>`<button class="pil" data-f="${k}" aria-pressed="${f===k}">${t} <span class="tel">${lijst.filter(o=>hoort(o,k)).length}</span></button>`).join("")}</div>
   ${f==="fav"&&!lijst.some(o=>hoort(o,"fav"))?'<p class="mut" style="margin-bottom:10px">Outfits waarbij je na het dragen "Helemaal mij" kiest, komen hier vanzelf.</p>':""}
@@ -929,7 +934,7 @@ const hexVan=c=>(PALET.find(p=>p[0]===c)||[])[1]||"#888";
 const silhouet=(t,cls="sil")=>`<svg class="${cls}" viewBox="0 0 100 110" aria-hidden="true"><path d="${SIL[t.soort]}" fill="${hexVan(t.kleur)}" stroke="rgba(0,0,0,.35)" stroke-width="2" stroke-linejoin="round"/></svg>`;
 const tipNaam=t=>`Een ${TIP_SOORT[t.soort]||SOORTNAAM[t.soort]} in ${t.kleur}`;
 const tipSleutel=t=>t.soort+"|"+t.kleur;
-let _tipCache=null,_tipSleutel="",geveegd=0;
+let _tipCache=null,_tipSleutel="",geveegd=0,stapelVolgorde=[];
 function gatTips(){ // welk stuk (soort + kleur) past bij de meeste dingen die je al hebt?
   const sleutel=JSON.stringify([S.wegStuk,S.labels,S.profiel,S.tipWeg,S.lijstje,KAST.length,vandaagDatum()]);
   if(_tipCache&&_tipSleutel===sleutel) return _tipCache;
