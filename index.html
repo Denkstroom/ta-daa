@@ -613,6 +613,13 @@ function ideeen(vast){
   }
   _ideeCache=gevarieerd(uit); _ideeSleutel=sleutel; return _ideeCache;
 }
+function nogNodig(){ // wat mist er nog voor je eerste outfit?
+  const k=kastNu(), heeft=l=>k.some(x=>isSoort(x,l)), top=["blouse","shirt/top","trui"], onder=["broek","rok"];
+  if(heeft(["jurk","jumpsuit"])||(heeft(top)&&heeft(onder))) return "";
+  if(heeft(top)) return "Nog 1 broek of rok, dan krijg je je eerste outfit!";
+  if(heeft(onder)) return "Nog 1 top, dan krijg je je eerste outfit!";
+  return "Voeg een jurk toe, of een top met een broek of rok. Dan krijg je je eerste outfit!";
+}
 const kledingIn=o=>o.stukken.filter(id=>K[id]?.soort!=="schoenen");
 function alle(){ // alle outfits: vaste + eigen combi's + ideeën van de kast
   const eigen=OUTFITS.map(o=>({...o,nr:String(o.nr),status:S.status[o.nr]||o.status})).concat(S.extra.map(o=>({...o,nr:String(o.nr)})));
@@ -767,10 +774,12 @@ function vandaag(){
   <div class="wissels"><button class="wisselknop" id="weerknop" aria-label="Weer: ${weerNaam}. Tik om te wisselen"><small>Weer</small><b>${weerNaam}</b></button>
     <button class="wisselknop" id="zinknop" aria-label="Zin in: ${zinNaam}. Tik om te wisselen"><small>Zin in</small><b>${zinNaam}</b></button></div></div>
   ${politie?`<div class="politie" role="status"><b>Modepolitie</b>${MODEPOLITIE[politie]}</div>`:ei?`<div class="politie" role="status"><b>${ei[0]}</b>${ei[1]}</div>`:""}
-  ${o?`<button class="tafel" id="open" aria-label="Bekijk deze outfit laag voor laag">${polaroids(o.stukken)}</button>
+  ${o?`<button class="tafel" id="open" aria-label="Bekijk deze outfit laag voor laag">${polaroids(o.stukken)}<span class="open-hint">${ICO.wissel}Bekijk of wissel een stuk</span></button>
     <div class="knoppen"><button class="secundair rond" id="andere" aria-label="Laat een andere outfit zien">${ICO.wissel}</button><button class="primair" id="aan">Trek ik aan</button></div>`
-  :kleding<2?`<div class="leeg-staat"><b>Je kast is nog leeg</b><br>Voeg eerst wat kleding toe. Dan gaat Ta-daa voor je combineren.</div><button class="primair" id="naarkast" style="margin-top:10px">Kleding toevoegen</button>`
-  :!alle().length?`<div class="leeg-staat"><b>Nog geen outfits</b><br>Ta-daa heeft minstens een top en een broek of rok nodig, of een jurk met een vest.</div><button class="primair" id="naarkast" style="margin-top:10px">Naar mijn kast</button>`
+  :teLabelen().length&&!alle().length?`<div class="leeg-staat"><b>Bijna!</b><br>Je hebt nog ${teLabelen().length===1?"1 foto":teLabelen().length+" foto's"} om in te vullen. Daarna gaat Ta-daa voor je combineren.</div><button class="primair" id="naarlabel" style="margin-top:10px">Verder met invullen</button>`
+  :kleding===0?`<div class="leeg-staat"><b>Je kast is nog leeg</b><br>Voeg eerst wat kleding toe. Dan gaat Ta-daa voor je combineren.</div><button class="primair" id="naarkast" style="margin-top:10px">Kleding toevoegen</button>`
+  :nogNodig()?`<div class="leeg-staat"><b>Nog geen outfits</b><br>${nogNodig()}</div><button class="primair" id="naarkast" style="margin-top:10px">Kleding toevoegen</button>`
+  :!alle().length?`<div class="leeg-staat"><b>Nog geen outfits</b><br>Je regels houden alle combinaties tegen. Zet er een paar uit bij Dit ben ik, onder Mijn regels.</div><button class="primair" id="naarregels" style="margin-top:10px">Naar mijn regels</button>`
   :`<div class="leeg-staat">Geen outfits voor ${weerNaam.toLowerCase()} weer${zinNu()!=="alles"?" die "+zinNaam.toLowerCase()+" zijn":""}. Tik op het weer of op "Zin in" om te wisselen.</div>`}`;
   if(o){
     $("#andere").onclick=()=>{overgeslagen(o.nr);plek++;andereTeller++;vandaag();};
@@ -778,10 +787,12 @@ function vandaag(){
     $("#aan").onclick=e=>{trekAan(o.nr);const b=e.currentTarget;b.textContent="Aangetrokken ✓";b.classList.add("gedaan");b.disabled=true;};
   }
   if($("#naarkast")) $("#naarkast").onclick=()=>{tab="kast";kast.w="kast";toon();};
+  if($("#naarregels")) $("#naarregels").onclick=()=>{tab="ik";ik.sub="regels";toon();};
+  if($("#naarlabel")) $("#naarlabel").onclick=()=>{tab="kast";kast.w="labelen";markeerMenu();const r=teLabelen();r.length?labelStap(r[0].id):toon();};
   $("#weerknop").onclick=()=>{const i=WEER.findIndex(w=>w[0]===weerNu());S.weerVandaag={datum:vandaagDatum(),weer:WEER[(i+1)%3][0]};bewaar();_ideeCache=null;plek=0;vandaag();};
   $("#zinknop").onclick=()=>{const i=ZIN.findIndex(z=>z[0]===zinNu()),n=ZIN[(i+1)%ZIN.length][0];behoefte=n==="alles"?{}:{[n]:true};plek=0;vandaag();};
 }
-const LAAGNAAM={Bovenlaag:"bovenlaag",Basis:"jurk",Top:"top",Accent:"eronder",Onder:"onder",Schoenen:"schoenen"};
+const LAAGLABEL={Bovenlaag:"Vest of jasje",Basis:"Jurk of jumpsuit",Top:"Top",Accent:"Hemdje eronder",Onder:"Broek of rok",Schoenen:"Schoenen"};
 const POLAROID_PLEK={1:[[50,50,-2]],2:[[31,44,-5],[69,56,4]],3:[[28,30,-6],[72,34,5],[50,72,-2]],4:[[28,27,-6],[72,29,5],[29,73,4],[71,73,-3]],5:[[26,25,-6],[74,27,5],[50,50,2],[26,76,4],[74,76,-4]]};
 function polaroids(ids){ // de outfit als polaroids op een tafel; gewone foto's zien er zo toch netjes uit
   const st=gesorteerd(ids).filter(id=>K[id]).slice(0,5), plek=POLAROID_PLEK[st.length]||POLAROID_PLEK[5];
@@ -831,7 +842,7 @@ function laagVoorLaag(nr,van){
   const terugNaar={vandaag:"Vandaag",outfits:"Outfits"}[van]||"Terug";
   app.innerHTML=`<button class="terug" id="terug">${ICO.terug}${terugNaar}</button>
   <p class="mut">${o.idee?"Idee van de kast":favoriet(o)?"Favoriet":"Mijn outfit"}</p>
-  <div class="slots">${ids.map(slotKnop).join("")}${leeg.map(l=>`<button class="slot leeg" data-leeg="${l}"><span class="plek">${ICO.plus}</span><span><span class="wat">${l}</span><b>${l==="Accent"?"Hemdje eronder?":l==="Bovenlaag"?"Vest erover?":"Kies schoenen"}</b></span><span></span></button>`).join("")}</div>
+  <div class="slots">${ids.map(slotKnop).join("")}${leeg.map(l=>`<button class="slot leeg" data-leeg="${l}"><span class="plek">${ICO.plus}</span><span><span class="wat">${LAAGLABEL[l]}</span><b>${l==="Accent"?"Iets eronder?":l==="Bovenlaag"?"Vest erover?":"Kies schoenen"}</b></span><span></span></button>`).join("")}</div>
   ${o.schoenen||o.tip?`<div class="notitie">${o.tip?`<p>${esc(o.tip)}</p>`:""}${o.schoenen?`<p class="mut">${esc(o.schoenen)}</p>`:""}</div>`:""}
   ${S.gedragen.map((g,i)=>[g,i]).filter(([g])=>String(g.nr)===o.nr).map(([g,i])=>`<div class="historie"><span>Gedragen ${g.datum.split("-").reverse().slice(0,2).join("-")} · ${g.klaar?gevoelTekst(g):"nog niet ingevuld"}</span><button data-gi="${i}">${g.klaar?"Pas aan":"Vul in"}</button></div>`).join("")}
   ${tips(werk.stukken).map(t=>`<div class="tip"><b>Tip van de kast</b>${t}</div>`).join("")}
@@ -861,7 +872,7 @@ function laagVoorLaag(nr,van){
 }
 function slotKnop(id,_,ids){ // één laag: tik om te wisselen, kruisje om weg te halen
   const it=K[id], l=rolVan(id,ids), extra=[labelTekst([id]),labels(id).hak&&it.soort!=="schoenen"?"alleen met hakken":""].filter(Boolean).join(" · ");
-  return `<div class="slot${l==="Accent"?" accent":""}"><button class="slot-hoofd" data-id="${id}" data-rol="${l}" aria-label="${esc(it.naam)} wisselen">${foto(id)}<span><span class="wat">${l}</span><b>${esc(it.naam)}</b><small>${extra||"&nbsp;"}</small></span><span class="wissel">${ICO.wissel}</span></button><button class="slot-weg" data-weg-laag="${id}" aria-label="${esc(it.naam)} weghalen">${ICO.x}</button></div>`;
+  return `<div class="slot${l==="Accent"?" accent":""}"><button class="slot-hoofd" data-id="${id}" data-rol="${l}" aria-label="${esc(it.naam)} wisselen">${foto(id)}<span><span class="wat">${LAAGLABEL[l]||l}</span><b>${esc(it.naam)}</b><small>${extra||"&nbsp;"}</small></span><span class="wissel">${ICO.wissel}</span></button><button class="slot-weg" data-weg-laag="${id}" aria-label="${esc(it.naam)} weghalen">${ICO.x}</button></div>`;
 }
 function tips(ids){ // de kast legt uit wat jouw regels van een combi vinden
   const its=ids.map(id=>K[id]).filter(Boolean), c=context(ids), t=[];
@@ -1006,23 +1017,24 @@ function lijstjeBlok(){
 }
 
 let combiStukken=[];
+const combiOk=()=>{const c=kledingIn({stukken:combiStukken});return c.length>=2||c.some(id=>isSoort(K[id],["jurk","jumpsuit"]));};
 function combi(){
   const ids=gesorteerd(combiStukken), heeft=new Set(ids.map(id=>rolVan(id,ids)));
   const vrij=["Bovenlaag","Top","Accent","Onder","Schoenen"].filter(l=>!heeft.has(l)&&!((l==="Top"||l==="Onder")&&heeft.has("Basis")));
-  app.innerHTML=`<button class="terug" id="terug">${ICO.terug}Outfits</button><h1>Nieuwe combi</h1><p class="mut">Vul de lagen die je wilt. Een jurk of jumpsuit kies je bij Top.</p>
-  <div class="slots">${ids.map(slotKnop).join("")}${vrij.map(l=>`<button class="slot leeg" data-leeg="${l}"><span class="plek">${ICO.plus}</span><span><span class="wat">${l}</span><b>Kies ${l==="Top"?"een top of jurk":l.toLowerCase()}</b></span><span></span></button>`).join("")}</div>
+  app.innerHTML=`<button class="terug" id="terug">${ICO.terug}Outfits</button><h1>Nieuwe combi</h1><p class="mut">Kies wat je wilt combineren. Je hebt minstens 2 stuks nodig, of een jurk.</p>
+  <div class="slots">${ids.map(slotKnop).join("")}${vrij.map(l=>`<button class="slot leeg" data-leeg="${l}"><span class="plek">${ICO.plus}</span><span><span class="wat">${l==="Top"?"Top of jurk":LAAGLABEL[l]}</span><b>Kies ${({Bovenlaag:"een vest of jasje",Top:"een top of jurk",Accent:"iets voor eronder",Onder:"een broek of rok",Schoenen:"schoenen"})[l]}</b></span><span></span></button>`).join("")}</div>
   ${combiStukken.length?tips(combiStukken).map(t=>`<div class="tip"><b>Tip van de kast</b>${t}</div>`).join(""):""}
-  <button class="primair" id="bewaar" ${combiStukken.length<2?"disabled":""}>${combiStukken.length<2?"Kies minstens 2 stuks":"Bewaar deze combi"}</button>`;
+  <button class="primair" id="bewaar" ${combiOk()?"":"disabled"}>${combiOk()?"Bewaar deze combi":"Kies minstens 2 stuks, of een jurk"}</button>`;
   $("#terug").onclick=()=>{tab="outfits";toon();};
   app.querySelectorAll("[data-leeg]").forEach(b=>b.onclick=()=>kiesVel(b.dataset.leeg==="Top"?"TopBasis":b.dataset.leeg,id=>{combiStukken.push(id);combi();}));
   app.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>wisselVel(b.dataset.id,b.dataset.rol,id=>{combiStukken=combiStukken.map(x=>x===b.dataset.id?id:x).filter(Boolean);combi();}));
   app.querySelectorAll("[data-weg-laag]").forEach(b=>b.onclick=()=>{combiStukken=combiStukken.filter(x=>x!==b.dataset.wegLaag);combi();});
-  $("#bewaar").onclick=()=>{if(combiStukken.length>=2) bewaarVel(combiStukken,"",()=>{combiStukken=[];});};
+  $("#bewaar").onclick=()=>{if(combiOk()) bewaarVel(combiStukken,"",()=>{combiStukken=[];});};
   scrollTo(0,0);
 }
 
 /* ================= 9. Kast, foto's toevoegen, labelen ================= */
-const GROEP=[["alles","Alles"],["Bovenlaag","Bovenlagen"],["Top","Tops"],["Basis","Jurken"],["Accent","Hemdjes"],["Onder","Onder"],["Schoenen","Schoenen"]];
+const GROEP=[["alles","Alles"],["Bovenlaag","Vesten"],["Top","Tops"],["Basis","Jurken"],["Accent","Hemdjes"],["Onder","Broeken en rokken"],["Schoenen","Schoenen"]];
 function syncNieuw(){ // zelf toegevoegde stukken (in S.nieuw) horen ook in de kast
   KAST.length=0; KAST.push(...KAST_BASIS);
   for(const n of (S.nieuw||[])){
@@ -1052,6 +1064,7 @@ function kast(){
   ${check?`<div class="kastcheck"><img src="${check.foto}" alt=""><div><b>Hé, draag je dit eigenlijk nog?</b><p class="mut">${esc(check.naam)}: al een maand niet gedragen.</p></div>
     <div class="check-knoppen"><button class="secundair" data-check="ja">Ja, gewoon nog</button><button class="secundair" data-check="weer">Alleen bij bepaald weer</button><button class="secundair" data-check="weg">Nee, mag weg</button></div>
     <div class="pillen" id="check-weer" hidden>${WEER.map(([w,t])=>`<button class="pil" data-check-weer="${w}">${t}</button>`).join("")}<button class="primair" id="check-weer-ok" style="margin-top:6px">Klaar</button></div></div>`:""}
+  ${w==="kast"&&kastNu().some(k=>k.soort!=="schoenen")&&nogNodig()?`<div class="tip"><b>Bijna!</b>${nogNodig()}</div>`:""}
   <input type="file" id="bestand" accept="image/*" multiple hidden>
   <div class="seg" role="tablist"><button role="tab" data-w="kast" aria-selected="${w==="kast"}">In mijn kast</button><button role="tab" data-w="labelen" aria-selected="${w==="labelen"}">Nog labelen${open.length?` <b>${open.length}</b>`:""}</button></div>
   ${w==="kast"?`<div class="filters">${groepen.map(([k,t])=>`<button class="pil" data-g="${k}" aria-pressed="${g===k}">${t}</button>`).join("")}</div>
@@ -1184,7 +1197,7 @@ function labelStap(id){ // één voor één de juiste info geven
   ${schoen?"":groep("Wat laat het zien?",zonesVoor(n).map(([z,t])=>chip("zichtbaar",z,t,true)).join(""))}
   ${groep("Voor welk weer?",WEER.map(([v,t])=>chip("weer",v,t,true)).join(""))}
   ${groep("Hoe voelt dit stuk?",[["comfy","Comfortabel"],["sexy","Sexy"],["stoer","Stoer"]].map(([v,t])=>chip("tags",v,t,true)).join("")+((onder||schoen)&&!heren()?`<button class="pil" data-bool="hak" aria-pressed="${!!n.hak}">${schoen?"Met hak":"Alleen met hakken"}</button>`:""))}
-  <div class="vastonder"><p class="meer-hint" aria-hidden="true">Scroll voor meer opties<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></p><button class="primair" id="volgende" ${klaarOk?"":"disabled"}>${klaarOk?(plek>-1&&plek<totaal-1?"Klaar, volgende foto":"Klaar"):"Kies eerst soort, kleur en weer"}</button>
+  <div class="vastonder"><p class="meer-hint" aria-hidden="true">Scroll voor meer opties<svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></p><button class="primair" id="volgende" ${klaarOk?"":"disabled"}>${klaarOk?(plek>-1&&plek<totaal-1?"Klaar, volgende foto":"Klaar"):"Kies eerst soort en kleur"}</button>
   <div style="display:flex;justify-content:space-between">${plek>-1&&totaal>1?'<button class="link" id="overslaan">Later doen</button>':"<span></span>"}<button class="link" id="fotoweg">Verwijder foto</button></div></div>`;
   navMaat(); requestAnimationFrame(eindeCheck);
   const opnieuw=()=>{const y=scrollY;labelStap(id);scrollTo(0,y);};
@@ -1272,8 +1285,8 @@ function beginscherm(){
 const TOUR=[ // volgt de menubalk: eerst je kast vullen, dan de rest
   {tab:"kast",doel:"#plus",kop:"Voeg je kleding toe",tekst:"Maak een foto van één kledingstuk, het liefst op een effen ondergrond. Of maak screenshots van je online aankopen."},
   {tab:"kast",doel:'nav [data-tab="kast"]',kop:"Dit is je kast",tekst:"Label je kleding en laat Ta‑daa je ondersteunen."},
-  {tab:"vandaag",doel:'nav [data-tab="vandaag"]',kop:"Laat je verrassen",tekst:"Kies hier het weer en waar je zin in hebt. Ta‑daa stelt dan een outfit voor."},
-  {tab:"outfits",doel:'nav [data-tab="outfits"]',kop:"Optioneel: vertel hoe het voelde",tekst:"Na het dragen vraagt Ta‑daa hoe je outfit voelde. Zo leert de app wat bij je past. Al je outfits staan hier."},
+  {tab:"vandaag",doel:'nav [data-tab="vandaag"]',kop:"Laat je verrassen",tekst:"Elke dag een outfit voor het weer en je zin. Na het dragen vraagt Ta‑daa hoe het voelde."},
+  {tab:"outfits",doel:'nav [data-tab="outfits"]',kop:"Je outfits en ideeën",tekst:"Hier staan de outfits die je bewaart. Bij Ideeën swipe je door voorstellen van de kast."},
   {tab:"ik",doel:'nav [data-tab="ik"]',kop:"Hier pas je alles aan",tekst:"Je antwoorden van daarnet, je kleurtype en je eigen regels. Ook je back-up vind je hier."}];
 let TS=-1;
 function startTour(){ TS=0; ik.sub=null; tekenTour(); }
@@ -1340,7 +1353,7 @@ function welkom(){ setTimeout(startTour,50); app.innerHTML=""; }
 function uitleg(onderwerp,van="ik"){
   const terug=`<button class="terug" id="terug">${ICO.terug}${ik.sub==="over"?"Over Ta-daa":"Dit ben ik"}</button>`;
   const T={
-    werkt:`<h1>Hoe werkt Ta-daa?</h1>${WAT_IS_TADAA}${stappenHtml()}<p class="mut">Ta-daa gebruikt geen AI. Alle voorstellen komen uit regels en uit wat jij zelf aangeeft.</p>`,
+    werkt:`<h1>Hoe werkt Ta-daa?</h1>${WAT_IS_TADAA}${stappenHtml()}<div class="tip"><b>Vandaag of Ideeën?</b>Bij Vandaag krijg je één outfit voor nu. Bij Ideeën swipe je door voorstellen en bewaar je wat je leuk vindt. Af en toe zit daar een Tip van Ta-daa tussen: een kledingstuk dat goed bij je kast zou passen.</div><p class="mut">Ta-daa gebruikt geen AI. Alle voorstellen komen uit regels en uit wat jij zelf aangeeft.</p>`,
     scherm:`<h1>Zet Ta-daa op je beginscherm</h1>
       <div class="blok"><h2>iPhone (Safari)</h2><ol class="kort"><li>Tik onderin op het deel-icoon: het vierkantje met de pijl omhoog.</li><li>Kies <b>Zet op beginscherm</b>.</li><li>Tik op <b>Voeg toe</b>.</li></ol></div>
       <div class="blok"><h2>Android (Chrome)</h2><ol class="kort"><li>Tik rechtsboven op de drie puntjes.</li><li>Kies <b>App installeren</b> of <b>Toevoegen aan startscherm</b>.</li><li>Bevestig.</li></ol></div>
@@ -1413,13 +1426,13 @@ function opties(laag){ // kledingstukken die op deze laag passen ("TopBasis" = t
 }
 function wisselVel(id,rol,klaar){
   const laag=rol||LAAG[K[id].soort];
-  vel(`<div class="vel-kop"><h2>Wissel ${laag.toLowerCase()}</h2><button class="sluit" aria-label="Sluiten">${ICO.x}</button></div>
+  vel(`<div class="vel-kop"><h2>Wissel ${(LAAGLABEL[laag]||laag).toLowerCase()}</h2><button class="sluit" aria-label="Sluiten">${ICO.x}</button></div>
   <div class="kies-rij">${opties(laag).map(k=>`<button data-k="${k.id}" aria-pressed="${k.id===id}"><img src="${k.foto}" alt=""><span>${esc(k.naam)}</span></button>`).join("")}</div>
   `);
   document.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{sluit();klaar(b.dataset.k);});
 }
 function kiesVel(laag,klaar){
-  const naam=laag==="TopBasis"?"top of jurk":laag.toLowerCase();
+  const naam=laag==="TopBasis"?"top of jurk":(LAAGLABEL[laag]||laag).toLowerCase();
   vel(`<div class="vel-kop"><h2>Kies ${naam}</h2><button class="sluit" aria-label="Sluiten">${ICO.x}</button></div>
   <div class="kies-rij">${opties(laag).map(k=>`<button data-k="${k.id}"><img src="${k.foto}" alt=""><span>${esc(k.naam)}</span></button>`).join("")}</div>`);
   document.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{sluit();klaar(b.dataset.k);});
