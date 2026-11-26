@@ -182,6 +182,13 @@ button.toggle[aria-pressed="true"] i::after,button.regel[aria-pressed="true"] i:
 .tip-vel{text-align:center}.tip-vel .sil{margin:0 auto}
 .lijstje{display:grid;grid-template-columns:52px 1fr auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--lijn)}.lijstje .sil{width:52px;height:56px;filter:none}.lijstje p{margin:0}
 .lijstje button{font-size:13px;color:var(--mut);text-decoration:underline}
+.lkaart{background:var(--vlak);border-radius:24px;padding:16px;margin-bottom:14px}.lkaart-top{display:flex;gap:12px;align-items:center}.silvak{flex:none;width:76px;height:82px;border-radius:16px;background:var(--foto);display:grid;place-items:center}.silvak .sil{width:62px;height:68px;margin:0}
+.lkaart h3{margin:0 0 3px;font-size:18px}.lkaart p{margin:0;font-size:13.5px}.lkaart .met{font-weight:700;margin:12px 0 6px}.lkaart .tip-strook{grid-template-columns:repeat(5,1fr);margin:0}.lkaart .weg{background:none;border:0;color:var(--mut);font-size:13px;text-decoration:underline;margin-top:10px;padding:0}
+.tipkaart{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 14px;text-align:center;cursor:default}.tipkaart .silvak{width:110px;height:118px;background:transparent}.tipkaart .silvak .sil{width:100px;height:110px}.tipkaart h3{margin:4px 0 2px;font-size:21px}.tipkaart .tip-label{font-weight:800;color:var(--accent)}.tipkaart .tip-strook{grid-template-columns:repeat(4,1fr);width:100%;margin:10px 0 0}
+.tipkaart+.knoppen{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tafel.tipkaart .tip-label{background:none;transform:none;padding:0;box-shadow:none;border-radius:0;color:var(--accent);font-size:14px;font-weight:800;position:static}
+.stuk{position:relative}.stuk .invul{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);white-space:nowrap;background:var(--accent);color:var(--op-accent);border-radius:99px;padding:4px 10px;font-size:12px;font-weight:800}
+.labelrij{display:block;width:100%;text-align:left;background:var(--accent-zacht);color:var(--inkt);border:0;border-radius:20px;padding:12px 16px;margin:0 0 12px;font-size:14.5px;line-height:1.4}
 .kastcheck{display:grid;grid-template-columns:72px 1fr;gap:12px;background:var(--accent-zacht);border-radius:18px;padding:12px;margin-bottom:12px}
 .kastcheck img{width:72px;height:88px;object-fit:contain}
 .kastcheck p{margin:2px 0 0}
@@ -311,6 +318,10 @@ select{width:100%;font:inherit;font-size:14px;border:1.5px solid var(--lijn);bor
 
 /* vel van onder, melding, onderbalk */
 .vel-achter{position:fixed;inset:0;background:rgba(10,20,24,.45);z-index:20}
+.spg-vraag{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.spg-vraag .keuze{font-size:13.5px;padding:7px 12px;font-weight:700}.spg-vraag .keuze.ja{background:var(--accent);color:var(--op-accent)}
+.kaart{position:relative}.kaart .hartje{position:absolute;top:10px;right:10px;z-index:3;width:28px;height:28px;border-radius:50%;background:var(--accent);display:grid;place-items:center}.kaart .hartje svg{width:16px;height:16px;fill:var(--op-accent)}
+.outfit-uitleg{margin:-4px 0 12px;font-size:14px}
+.outfit-tafel{height:300px;pointer-events:none}
 .nieuw-achter{position:fixed;inset:0;z-index:200;background:rgba(34,9,15,.45);display:grid;place-items:center;padding:20px}
 .nieuw-kaart{background:var(--vlak);color:var(--inkt);border-radius:28px;padding:24px 20px 20px;max-width:360px;width:100%;text-align:center;box-shadow:0 20px 40px -16px rgba(0,0,0,.5)}
 .nieuw-kaart .spg{width:96px;height:96px;margin:0 auto 10px}
@@ -645,8 +656,11 @@ function zichtScore(ids){ // wat laat deze outfit zien, en hoe voel jij je daarb
 
 function suggesties(){ // kleurparen die je minstens 3 keer weghaalde en nooit bewaarde
   const paren=ids=>{const k=[...new Set(ids.filter(id=>K[id]&&K[id].soort!=="schoenen").map(kleur).filter(c=>c&&FAMILIE[c]))].sort();const p=[];k.forEach((a,i)=>k.slice(i+1).forEach(b=>p.push(a+"+"+b)));return p;};
-  const weg={}; S.wegIdee.forEach(s=>paren(s.split("+")).forEach(p=>weg[p]=(weg[p]||0)+1));
-  const bewaard=new Set(OUTFITS.concat(S.extra).flatMap(o=>paren(o.stukken)));
+  const weg={}, tel=ids=>paren(ids).forEach(p=>weg[p]=(weg[p]||0)+1);
+  S.wegIdee.forEach(s=>tel(s.split("+"))); (S.overIdee||[]).forEach(s=>tel(s.split("+")));   // weggehaald, of op Vandaag overgeslagen (⇄)
+  const nietMij=new Set(S.gedragen.filter(g=>g.klaar&&g.mij<45).map(g=>String(g.nr)));        // na het dragen: 'Niet mezelf'
+  OUTFITS.concat(S.extra).filter(o=>nietMij.has(String(o.nr))).forEach(o=>tel(o.stukken));
+  const bewaard=new Set(OUTFITS.concat(S.extra).filter(o=>!nietMij.has(String(o.nr))&&!S.weg.includes(String(o.nr))).flatMap(o=>paren(o.stukken)));
   const al=new Set(P().nooit.flatMap(r=>[].concat(r.b).map(b=>[r.a,b].map(x=>x.slice(2)).sort().join("+"))));
   return Object.entries(weg).filter(([p,n])=>n>=3&&!bewaard.has(p)&&!al.has(p)&&!P().genegeerd.includes(p)).sort((a,b)=>b[1]-a[1]).map(([p,n])=>({paar:p.split("+"),n}));
 }
@@ -828,7 +842,7 @@ function ik(){
   app.querySelectorAll("[data-weg-regel]").forEach(b=>b.onclick=()=>zet(p=>p.nooit.splice(+b.dataset.wegRegel,1)));
   if($("#nooit-voeg")) $("#nooit-voeg").onclick=()=>{const a=$("#nooit-a").value,b=$("#nooit-b").value;
     if(!a||!b||a===b){melding("Kies twee verschillende dingen");return;}
-    zet(p=>p.nooit.push({a,b})); melding("Regel toegevoegd. De ideeën zijn bijgewerkt.");};
+    zet(p=>p.nooit.push({a,b})); melding("Regel toegevoegd. Je outfits zijn bijgewerkt.");};
 }
 
 /* Het spiegeltje: het gezicht van Ta-daa (Irene, 2026-11-25). Andere variant? Alleen deze tekening vervangen. */
@@ -870,17 +884,21 @@ function vandaag(){
   if(open&&vind(open.nr)&&tijdVoorVraag&&!(open.later&&open.later>=vandaagDatum())) return voelde(open);
   const kleding=kastNu().filter(k=>k.soort!=="schoenen").length;
   const vast=vastNu(), lijst=lijstMetVast(ranglijst());
-  const o=lijst.length?lijst[plek%lijst.length]:null;
+  const o=toonOutfit?{...toonOutfit}:lijst.length?lijst[plek%lijst.length]:null;
+  const tip=tipTonen&&o&&!vast.length?tipNu():null;
+  const sug=!tip&&!politie0()&&o&&!vast.length?suggesties()[0]:null;
   const politie=Object.keys(MODEPOLITIE).map(Number).filter(x=>x<=andereTeller).pop();
   const uur=new Date().getHours(), laatst=S.gedragen.slice(-1)[0];
   const ei=uur>=23||uur<4?["Psst","Outfit voor in bed? Pyjama, check. Ga slapen 😴"]
     :laatst&&(new Date(vandaagDatum())-new Date(laatst.datum))/864e5>=30?["Je kast","Hallo? Leef je nog? Je kast mist je."]:null;
   const weerNaam=WEER.find(w=>w[0]===weerNu())[1], zinNaam=ZIN.find(z=>z[0]===zinNu())[1];
-  const zegt=politie?MODEPOLITIE[politie]:ei?ei[1]:vast.length?`Met je ${vast.map(id=>K[id].naam.toLowerCase()).join(" en je ")}. Goede keuze!`:"Wat wil je aan?";
-  app.innerHTML=`<div class="spg-kop">${SPG}<div><h1>${groet()}</h1><p class="mut"${politie||ei?' role="status"':""}>${zegt}</p></div></div>
+  const zegt=politie?MODEPOLITIE[politie]:ei?ei[1]:sug?`Je slaat ${sug.paar[0]} met ${sug.paar[1]} vaak over. Zal ik die kleuren nooit meer samen doen?`:vast.length?`Met je ${vast.map(id=>K[id].naam.toLowerCase()).join(" en je ")}. Goede keuze!`:"Wat wil je aan?";
+  app.innerHTML=`<div class="spg-kop">${SPG}<div><h1>${groet()}</h1><p class="mut"${politie||ei||sug?' role="status"':""}>${zegt}</p>${sug&&!politie&&!ei?`<div class="spg-vraag"><button class="keuze" data-sug-nee="${sug.paar.join("+")}">Nee, laat maar</button><button class="keuze ja" data-sug-ja="${sug.paar.join("+")}">Ja, nooit samen</button></div>`:""}</div></div>
   <div class="keuzes"><button class="keuze" id="weerknop" aria-label="Weer: ${weerNaam}. Tik om te wisselen">Weer: <b>${weerNaam}</b></button>
     <button class="keuze" id="zinknop" aria-label="Zin in: ${zinNaam}. Tik om te wisselen">Zin in: <b>${zinNaam}</b></button></div>
-  ${o?`<button class="tafel" id="open" aria-label="Je outfit. Tik op een kledingstuk om het vast te zetten of te wisselen"><span class="stempel ja">Trek ik aan</span><span class="stempel nee">Andere</span>${polaroids(o.stukken,vast)}</button>
+  ${tip?`<div class="tafel tipkaart" role="group" aria-label="Tip van Ta-daa"><span class="tip-label">Tip van Ta-daa!</span><span class="silvak">${silhouet(tip)}</span><h3>${esc(tipNaam(tip))}</h3><p class="mut" style="margin:0;font-size:14px">Past bij ${tip.aantal} dingen die je al hebt, zoals:</p><div class="tip-strook">${tip.met.slice(0,4).map(id=>`<img src="${K[id].foto}" alt="${esc(K[id].naam)}">`).join("")}</div></div>
+    <div class="knoppen"><button class="secundair" id="tip-nee">Niks voor mij</button><button class="primair" id="tip-ja">Op mijn lijstje</button></div><p class="tafel-tip">Daarna zie je gewoon weer een outfit.</p>`
+  :o?`<button class="tafel" id="open" aria-label="Je outfit. Tik op een kledingstuk om het vast te zetten of te wisselen"><span class="stempel ja">Trek ik aan</span><span class="stempel nee">Andere</span>${polaroids(o.stukken,vast)}</button>
     <div class="knoppen"><button class="secundair rond" id="andere" aria-label="Laat een andere outfit zien">${ICO.wissel}</button><button class="primair" id="aan">Trek ik aan</button></div>${(S.tikTeller||0)>=10?"":`<p class="tafel-tip"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.2 7.8L22 12l-7.8 2.2L12 22l-2.2-7.8L2 12l7.8-2.2z"/></svg>Wil je iets houden of ruilen? Tik op dat kledingstuk.</p>`}`
   :teLabelen().length&&!alle().length?`<div class="leeg-staat">${SPG}<b>Bijna!</b><br>Je hebt nog ${teLabelen().length===1?"1 foto":teLabelen().length+" foto's"} om in te vullen. Daarna gaat Ta-daa voor je combineren.</div><button class="primair" id="naarlabel" style="margin-top:10px">Verder met invullen</button>`
   :kleding===0?`<div class="leeg-staat">${SPG}<b>Je kast is nog leeg</b><br>Voeg eerst wat kleding toe. Dan gaat Ta-daa voor je combineren.</div><button class="primair" id="naarkast" style="margin-top:10px">Kleding toevoegen</button>`
@@ -890,9 +908,10 @@ function vandaag(){
       <div class="vast-rij">${vast.map(id=>`<button class="vast-stuk" data-los="${id}" aria-label="${esc(K[id].naam)} losmaken"><img src="${K[id].foto}" alt=""><span>Maak los</span></button>`).join("")}</div></div>
       <button class="primair" id="alles-los" style="margin-top:10px">Maak alles los</button>`
   :`<div class="leeg-staat">${SPG}Geen outfits voor ${weerNaam.toLowerCase()} weer${zinNu()!=="alles"?" die "+zinNaam.toLowerCase()+" zijn":""}. Tik op het weer of op "Zin in" om te wisselen.</div>`}`;
-  if(o){
-    const andere=()=>{overgeslagen(o.nr);plek++;andereTeller++;vandaag();};
-    const aan=()=>{const b=$("#aan"); if(!b||b.disabled) return; let nr=o.nr; if(o.aangepast){nr=String(nieuwNr());S.extra.push({nr:+nr,stukken:[...o.stukken],schoenen:"",tip:"",eigen:true});} trekAan(nr);b.textContent="Aangetrokken ✓";b.classList.add("gedaan");b.disabled=true;};
+  if(tip){ $("#tip-ja").onclick=()=>tipKeuze(tip,true); $("#tip-nee").onclick=()=>tipKeuze(tip,false); }
+  else if(o){
+    const andere=()=>{overgeslagen(o.nr); if(o.idee&&o.sleutel){S.overIdee=[...new Set([...(S.overIdee||[]),o.sleutel])].slice(-80);bewaar();} if(toonOutfit) toonOutfit=null; else plek++; andereTeller++; if(andereTeller===2&&!vast.length&&tipNu()) tipTonen=true; vandaag();};
+    const aan=()=>{const b=$("#aan"); if(!b||b.disabled) return; let nr=o.nr; if(o.aangepast){nr=String(nieuwNr());S.extra.push({nr:+nr,stukken:[...o.stukken],schoenen:"",tip:"",eigen:true});} toonOutfit=null;trekAan(nr);b.textContent="Aangetrokken ✓";b.classList.add("gedaan");b.disabled=true;};
     $("#andere").onclick=andere; $("#aan").onclick=aan;
     // vegen, net als bij Ideeën: rechts = trek ik aan, links = andere, tikken = van dichtbij bekijken
     const k=$("#open"); let x0=null,y0=0,dx=0,sleept=false;
@@ -907,22 +926,25 @@ function vandaag(){
       terug(); };
     k.addEventListener("pointerup",los); k.addEventListener("pointercancel",los);
     k.addEventListener("click",e=>{ if(sleept){e.preventDefault();sleept=false;return;}
-      const pol=e.target.closest("[data-pid]"); if(pol) return stukVel(pol.dataset.pid,o);
-      if(o.aangepast) werk={nr:o.nr,stukken:[...o.stukken]}; laagVoorLaag(o.nr,"vandaag"); });
+      const pol=e.target.closest("[data-pid]"); if(pol) return stukVel(pol.dataset.pid,o); });
   }
+  app.querySelectorAll("[data-sug-ja]").forEach(b=>b.onclick=()=>{const [x,y]=b.dataset.sugJa.split("+");S.profiel=P();S.profiel.nooit.push({a:"k:"+x,b:["k:"+y]});bewaar();_ideeCache=null;vandaag();melding("Afgesproken. Die zet ik nooit meer samen.");});
+  app.querySelectorAll("[data-sug-nee]").forEach(b=>b.onclick=()=>{S.profiel=P();S.profiel.genegeerd=[...(S.profiel.genegeerd||[]),b.dataset.sugNee];bewaar();vandaag();melding("Oké, dan blijf ik ze gewoon proberen.");});
   app.querySelectorAll("[data-los]").forEach(b=>b.onclick=()=>{zetVast(b.dataset.los);vandaag();melding("Losgemaakt.");});
-  if($("#alles-los")) $("#alles-los").onclick=()=>{S.vast=null;bewaar();plek=0;vandaag();melding("Alles is los. Ik kies weer voor je.");};
+  if($("#alles-los")) $("#alles-los").onclick=()=>{S.vast=null;toonOutfit=null;bewaar();plek=0;vandaag();melding("Alles is los. Ik kies weer voor je.");};
   if($("#naarkast")) $("#naarkast").onclick=()=>{tab="kast";kast.w="kast";toon();};
   if($("#naarregels")) $("#naarregels").onclick=()=>{tab="ik";ik.sub="regels";toon();};
-  if($("#naarlabel")) $("#naarlabel").onclick=()=>{tab="kast";kast.w="labelen";markeerMenu();const r=teLabelen();r.length?labelStap(r[0].id):toon();};
-  $("#weerknop").onclick=()=>{const i=WEER.findIndex(w=>w[0]===weerNu());S.weerVandaag={datum:vandaagDatum(),weer:WEER[(i+1)%3][0]};bewaar();_ideeCache=null;plek=0;vandaag();};
-  $("#zinknop").onclick=()=>{const i=ZIN.findIndex(z=>z[0]===zinNu()),n=ZIN[(i+1)%ZIN.length][0];behoefte=n==="alles"?{}:{[n]:true};plek=0;vandaag();};
+  if($("#naarlabel")) $("#naarlabel").onclick=()=>{tab="kast";kast.w="kast";markeerMenu();const r=teLabelen();r.length?labelStap(r[0].id):toon();};
+  $("#weerknop").onclick=()=>{const i=WEER.findIndex(w=>w[0]===weerNu());S.weerVandaag={datum:vandaagDatum(),weer:WEER[(i+1)%3][0]};bewaar();_ideeCache=null;plek=0;toonOutfit=null;vandaag();};
+  $("#zinknop").onclick=()=>{const i=ZIN.findIndex(z=>z[0]===zinNu()),n=ZIN[(i+1)%ZIN.length][0];behoefte=n==="alles"?{}:{[n]:true};plek=0;toonOutfit=null;vandaag();};
 }
 const LAAGLABEL={Bovenlaag:"Vest of jasje",Basis:"Jurk of jumpsuit",Top:"Top",Accent:"Hemdje eronder",Onder:"Broek of rok",Schoenen:"Schoenen"};
 const POLAROID_PLEK={1:[[50,50,-2]],2:[[31,44,-5],[69,56,4]],3:[[28,30,-6],[72,34,5],[50,72,-2]],4:[[28,27,-6],[72,29,5],[29,73,4],[71,73,-3]],5:[[26,25,-6],[74,27,5],[50,50,2],[26,76,4],[74,76,-4]]};
 
+let toonOutfit=null; // een outfit die je zelf koos (uit Outfits, of na wisselen zonder vastzetten)
+const politie0=()=>Object.keys(MODEPOLITIE).map(Number).some(x=>x<=andereTeller);
 function blijfOp(nr){ // na vastzetten of wisselen: blijf op dezelfde outfit (nu met je vaste stuk)
-  const l=lijstMetVast(ranglijst()), i=l.findIndex(x=>x.nr===nr); plek=i>-1?i:0;
+  toonOutfit=null; const l=lijstMetVast(ranglijst()), i=l.findIndex(x=>x.nr===nr); plek=i>-1?i:0;
 }
 function stukVel(id,o){ // tik op een polaroid: vastzetten, losmaken of wisselen
   if((S.tikTeller||0)<10){S.tikTeller=(S.tikTeller||0)+1;bewaar();} // tip onder de knoppen blijft staan tot je 10 keer op een stuk hebt getikt
@@ -933,7 +955,7 @@ function stukVel(id,o){ // tik op een polaroid: vastzetten, losmaken of wisselen
   if($("#stuk-vast")) $("#stuk-vast").onclick=()=>{ if(!v&&!lijstMetVast(ranglijst(),[...vastNu(),id]).length){ sluit(); melding("Daar past niks bij samen met wat al vastzit. Maak eerst iets los."); return; } const aan=zetVast(id); sluit(); blijfOp(o.nr); vandaag(); melding(aan?"Staat vast! Tik op ⇄ voor iets anders erbij.":"Losgemaakt. Ik kies weer alles voor je."); };
   $("#stuk-wissel").onclick=()=>{ sluit(); wisselVel(id,rol,nieuw=>{ if(nieuw===id) return;
     const v2=vastNu().filter(x=>x!==id); v2.push(nieuw);
-    if(!lijstMetVast(ranglijst(),v2).length){ werk={nr:o.nr,stukken:o.stukken.map(x=>x===id?nieuw:x)}; laagVoorLaag(o.nr,"vandaag"); melding("Gewisseld. Vastzetten lukt hier niet: daar past verder niks bij."); return; }
+    if(!lijstMetVast(ranglijst(),v2).length){ toonOutfit={nr:o.nr,stukken:o.stukken.map(x=>x===id?nieuw:x),aangepast:true}; vandaag(); melding("Gewisseld. Vastzetten lukt hier niet: daar past verder niks bij."); return; }
     S.vast={datum:vandaagDatum(),ids:v2}; bewaar(); blijfOp(o.nr); vandaag(); melding("Gewisseld! Hij staat nu vast."); }); };
 }
 function polaroids(ids,vast){ // de outfit als polaroids op een tafel; gewone foto's zien er zo toch netjes uit
@@ -974,48 +996,7 @@ function bewaarIdee(nr){ // een idee dat je bewaart of aantrekt, wordt een van j
   S.gedragen.forEach(g=>{if(String(g.nr)===String(nr)) g.nr=n;}); return String(n);
 }
 
-let werk=null; // tijdelijke versie als je in een outfit lagen wisselt
-function laagVoorLaag(nr,van){
-  const o=vind(nr); if(!o){tab=van;return toon();}
-  if(!werk||werk.nr!==o.nr) werk={nr:o.nr,stukken:[...o.stukken]};
-  const gewijzigd=werk.stukken.join()!==o.stukken.join(), ids=gesorteerd(werk.stukken);
-  const heeft=new Set(ids.map(id=>rolVan(id,ids)));
-  const leeg=["Bovenlaag","Accent","Schoenen"].filter(l=>!heeft.has(l)&&!(l==="Accent"&&heeft.has("Basis")&&!heeft.has("Top")));
-  const terugNaar={vandaag:"Vandaag",outfits:"Outfits"}[van]||"Terug";
-  app.innerHTML=`<button class="terug" id="terug">${ICO.terug}${terugNaar}</button>
-  <p class="mut">${o.idee?"Idee van de kast":favoriet(o)?"Helemaal mij":"Mijn outfit"}</p>
-  <div class="slots">${ids.map(slotKnop).join("")}${leeg.map(l=>`<button class="slot leeg" data-leeg="${l}"><span class="plek">${ICO.plus}</span><span><span class="wat">${LAAGLABEL[l]}</span><b>${l==="Accent"?"Iets eronder?":l==="Bovenlaag"?"Vest erover?":"Kies schoenen"}</b></span><span></span></button>`).join("")}</div>
-  ${o.schoenen||o.tip?`<div class="notitie">${o.tip?`<p>${esc(o.tip)}</p>`:""}${o.schoenen?`<p class="mut">${esc(o.schoenen)}</p>`:""}</div>`:""}
-  ${S.gedragen.map((g,i)=>[g,i]).filter(([g])=>String(g.nr)===o.nr).map(([g,i])=>`<div class="historie"><span>Gedragen ${g.datum.split("-").reverse().slice(0,2).join("-")} · ${g.klaar?gevoelTekst(g):"nog niet ingevuld"}</span><button data-gi="${i}">${g.klaar?"Pas aan":"Vul in"}</button></div>`).join("")}
-  ${tips(werk.stukken).map(t=>`<div class="tip"><b>Tip van de kast</b>${t}</div>`).join("")}
-  ${o.idee&&!gewijzigd?`<button class="secundair" id="houd" style="width:100%;margin-bottom:8px">Bewaar bij mijn outfits</button>`:""}
-  ${gewijzigd?`<button class="secundair" id="nieuw" style="width:100%;margin-bottom:8px">Bewaar als nieuwe combi</button>`:""}
-  <button class="primair" id="aan">Trek ik aan</button>
-  <div id="wegplek"><button class="link" id="weg">${o.idee?"Dit idee niet meer laten zien":"Verwijder deze outfit"}</button></div>`;
-  $("#terug").onclick=()=>{werk=null;tab=van;toon();};
-  app.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>wisselVel(b.dataset.id,b.dataset.rol,id=>{werk.stukken=werk.stukken.map(x=>x===b.dataset.id?id:x).filter(Boolean);laagVoorLaag(nr,van);}));
-  app.querySelectorAll("[data-weg-laag]").forEach(b=>b.onclick=()=>{werk.stukken=werk.stukken.filter(x=>x!==b.dataset.wegLaag);laagVoorLaag(nr,van);});
-  app.querySelectorAll("[data-leeg]").forEach(b=>b.onclick=()=>kiesVel(b.dataset.leeg,id=>{werk.stukken.push(id);laagVoorLaag(nr,van);}));
-  app.querySelectorAll("[data-gi]").forEach(b=>b.onclick=()=>{const g=S.gedragen[+b.dataset.gi];g.later=false;werk=null;tab="vandaag";markeerMenu();voelde(g);});
-  $("#aan").onclick=()=>{let nr=o.nr;
-    if(gewijzigd){nr=String(nieuwNr());S.extra.push({nr:+nr,stukken:[...werk.stukken],schoenen:"",tip:"",eigen:true});}
-    trekAan(nr);werk=null;tab="vandaag";toon();};
-  if(o.idee&&!gewijzigd) $("#houd").onclick=()=>{bewaarIdee(o.nr);bewaar();werk=null;melding("Goede smaak! Hij staat bij je outfits.");tab=van;toon();};
-  if(gewijzigd) $("#nieuw").onclick=()=>bewaarVel(werk.stukken,o.schoenen,()=>{werk=null;});
-  $("#weg").onclick=()=>{
-    $("#wegplek").innerHTML=`<div class="bevestig"><p>${o.idee?"Dit idee weghalen?":"Deze outfit verwijderen?"}</p><div><button class="secundair" id="nee">Laat staan</button><button class="primair" id="ja">Verwijder</button></div></div>`;
-    $("#nee").onclick=()=>laagVoorLaag(nr,van);
-    $("#ja").onclick=()=>{const was=kopie({weg:S.weg,wegIdee:S.wegIdee,extra:S.extra});
-      if(o.idee) S.wegIdee.push(o.sleutel); else {S.weg.push(o.nr);S.extra=S.extra.filter(x=>String(x.nr)!==o.nr);}
-      bewaar();werk=null;tab=van;toon();
-      melding(o.idee&&suggesties().length?"Weggehaald. De kast heeft een tip voor je bij Dit ben ik.":"De outfit is verwijderd.",()=>Object.assign(S,was));};
-  };
-  scrollTo(0,0);
-}
-function slotKnop(id,_,ids){ // één laag: tik om te wisselen, kruisje om weg te halen
-  const it=K[id], l=rolVan(id,ids), extra=[labelTekst([id]),labels(id).hak&&it.soort!=="schoenen"?"alleen met hakken":""].filter(Boolean).join(" · ");
-  return `<div class="slot${l==="Accent"?" accent":""}"><button class="slot-hoofd" data-id="${id}" data-rol="${l}" aria-label="${esc(it.naam)} wisselen">${foto(id)}<span><span class="wat">${LAAGLABEL[l]||l}</span><b>${esc(it.naam)}</b><small>${extra||"&nbsp;"}</small></span><span class="wissel">${ICO.wissel}</span></button><button class="slot-weg" data-weg-laag="${id}" aria-label="${esc(it.naam)} weghalen">${ICO.x}</button></div>`;
-}
+let werk=null; // (oud) blijft bestaan voor de menubalk
 function tips(ids){ // de kast legt uit wat jouw regels van een combi vinden
   const its=ids.map(id=>K[id]).filter(Boolean), c=context(ids), t=[];
   if(regelAan("max3")&&new Set(c.fam).size>3) t.push(`Dit zijn ${new Set(c.fam).size} kleuren. Jouw regel: maximaal 3.`);
@@ -1030,54 +1011,29 @@ function tips(ids){ // de kast legt uit wat jouw regels van een combi vinden
 }
 
 /* ================= 8. Outfits en Nieuwe combi ================= */
-function outfits(){
-  const f=["mijn","fav","idee"].includes(outfits.f)?outfits.f:"mijn", lijst=alle(), tip=f==="idee"?tipNu():null;
-  const hoort=(o,k)=>k==="idee"?o.idee:k==="fav"?(!o.idee&&favoriet(o)):!o.idee;
-  let l=lijst.filter(o=>hoort(o,f)).sort((a,b)=>(a.idee-b.idee)||(+a.nr-+b.nr));
-  if(f==="idee"){ // vaste volgorde tijdens het vegen: het kaartje dat erachter ligt, komt daarna ook echt bovenop
-    const plek=new Map(stapelVolgorde.map((nr,i)=>[nr,i]));
-    l=[...l.filter(o=>plek.has(o.nr)).sort((a,b)=>plek.get(a.nr)-plek.get(b.nr)),...l.filter(o=>!plek.has(o.nr))];
-    stapelVolgorde=l.map(o=>o.nr);
-  }
-  app.innerHTML=`<div class="kop"><h1>Mijn outfits</h1><button class="toevoeg" id="nieuwecombi">${ICO_EXTRA.lagen}Nieuwe combi</button></div>
-  <div class="seg" role="tablist">${[["mijn","Mijn outfits"],["fav","Helemaal mij"],["idee","Ideeën"]].map(([k,t])=>`<button role="tab" data-f="${k}" aria-selected="${f===k}">${t} <span class="tel">${lijst.filter(o=>hoort(o,k)).length}</span></button>`).join("")}</div>
-  ${f==="fav"&&!lijst.some(o=>hoort(o,"fav"))?`<div class="leeg-staat">${SPG}<b>Nog niks hier</b><br>Kies je na het dragen "Helemaal mij", dan komt die outfit hier vanzelf.</div>`:""}
-  ${f==="idee"?ideeStapel(l,tip):`<div class="outfit-raster">${l.map(o=>`<button class="kaart" data-o="${o.nr}"><div class="mini-pol n${Math.min(4,o.stukken.filter(id=>K[id]).length)}">${gesorteerd(o.stukken).filter(id=>K[id]).slice(0,4).map((id,i)=>`<span style="transform:rotate(${[-3,2,3,-2][i]}deg)"><img src="${K[id].foto}" alt=""></span>`).join("")}</div></button>`).join("")||(f==="fav"?"":`<div class="leeg-staat">${SPG}Hier staat nog niks. Bewaar een idee of tik op Nieuwe combi.</div>`)}</div>`}`;
-  if(f==="idee") stapelGedrag(l,tip);
-  app.querySelectorAll("[data-f]").forEach(b=>b.onclick=()=>{outfits.f=b.dataset.f;outfits();});
-  app.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>laagVoorLaag(b.dataset.o,"outfits"));
-  $("#nieuwecombi").onclick=()=>combi();
+function outfits(){ // één lijst: je eigen outfits, die van 'Helemaal mij' bovenaan met een hartje
+  const l=alle().filter(o=>!o.idee).sort((a,b)=>(favoriet(b)-favoriet(a))||(+a.nr-+b.nr));
+  app.innerHTML=`<div class="kop"><h1>Mijn outfits</h1></div>
+  ${l.length?`<p class="mut outfit-uitleg">Met een hartje: helemaal jij. Tik op een outfit om hem vandaag te dragen.</p>`:""}
+  <div class="outfit-raster">${l.map(o=>`<button class="kaart" data-o="${o.nr}" aria-label="${favoriet(o)?"Helemaal mij. ":""}Bekijk deze outfit">${favoriet(o)?`<span class="hartje" aria-hidden="true">${HART}</span>`:""}<div class="mini-pol n${Math.min(4,o.stukken.filter(id=>K[id]).length)}">${gesorteerd(o.stukken).filter(id=>K[id]).slice(0,4).map((id,i)=>`<span style="transform:rotate(${[-3,2,3,-2][i]}deg)"><img src="${K[id].foto}" alt=""></span>`).join("")}</div></button>`).join("")||`<div class="leeg-staat">${SPG}<b>Nog geen outfits</b><br>Trek op Vandaag een outfit aan, dan komt hij hier vanzelf te staan.</div>`}</div>`;
+  app.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>outfitVel(b.dataset.o));
 }
-// Ideeën als kaartjes: veeg naar rechts = bewaren, naar links = weg, tik = van dichtbij bekijken
-function ideeStapel(l,tip){
-  if(tip) return `<div class="stapel">${l[0]?`<div class="tafel kaartje achter" aria-hidden="true">${polaroids(l[0].stukken)}</div>`:""}${tipKaart(tip)}</div>
-  <div class="knoppen veeg"><button class="secundair rond" id="idee-nee" aria-label="Niks voor mij">${ICO.x}</button><span class="mut">Tip van Ta-daa!</span><button class="primair rond" id="idee-ja" aria-label="Op mijn lijstje"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>`;
-  if(!l.length) return `<div class="leeg-staat">${SPG}<b>Je hebt álles gezien</b><br>Zelfs de kast is even uitgepraat. Voeg meer kleding toe of zet een regel uit bij Dit ben ik, dan bedenkt hij nieuwe.</div>`;
-  return `<div class="stapel">${l[1]?`<div class="tafel kaartje achter" aria-hidden="true">${polaroids(l[1].stukken)}</div>`:""}
-    <button class="tafel kaartje" id="kaartje" aria-label="Bekijk dit idee van dichtbij"><span class="stempel ja">Bewaren</span><span class="stempel nee">Weg</span>${polaroids(l[0].stukken)}<span class="open-hint">${ICO.wissel}Bekijk, wissel of zet vast</span></button></div>
-  <div class="knoppen veeg"><button class="secundair rond" id="idee-nee" aria-label="Weg, niet meer laten zien">${ICO.x}</button><span class="mut">${l.length} ${l.length===1?"idee":"ideeën"}</span><button class="primair rond" id="idee-ja" aria-label="Bewaren bij mijn outfits"><svg class="ico" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></button></div>`;
-}
-function stapelGedrag(l,tip){
-  const k=$("#kaartje"); if(!k) return; const o=l[0];
-  const klaar=ja=>{ if(!tip) geveegd++;
-    k.style.transition="transform .25s ease-out,opacity .25s"; k.style.transform=`translateX(${ja?120:-120}%) rotate(${ja?18:-18}deg)`; k.style.opacity="0";
-    setTimeout(()=>{
-      if(tip) return tipKeuze(tip,ja);
-      if(ja){const nr=bewaarIdee(o.nr);bewaar();_ideeCache=null;outfits();melding("Goede smaak! Hij staat bij je outfits.",()=>{S.extra=S.extra.filter(x=>String(x.nr)!==String(nr));});}
-      else{S.wegIdee.push(o.sleutel);bewaar();_ideeCache=null;outfits();melding("Hup! Weg ermee.",()=>{S.wegIdee=S.wegIdee.filter(x=>x!==o.sleutel);});}
-    },220);
+const HART='<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
+function outfitVel(nr){ // tik op een outfit: bekijken, vandaag dragen of verwijderen
+  const o=vind(nr); if(!o) return; const ids=gesorteerd(o.stukken).filter(id=>K[id]);
+  const keer=S.gedragen.filter(g=>String(g.nr)===o.nr), laatst=keer.slice(-1)[0];
+  vel(`<div class="vel-kop"><h2>${favoriet(o)?"Helemaal mij":"Mijn outfit"}</h2><button class="sluit" aria-label="Sluiten">${ICO.x}</button></div>
+    <div class="tafel outfit-tafel" aria-hidden="true">${polaroids(o.stukken)}</div>
+    <p class="mut" style="text-align:center;margin:8px 0 12px">${keer.length?`${keer.length===1?"1 keer":keer.length+" keer"} gedragen, voor het laatst op ${laatst.datum.split("-").reverse().slice(0,2).join("-")}${laatst.klaar?`. Dat voelde ${gevoelTekst(laatst)}.`:"."}`:"Nog niet gedragen."}</p>
+    <button class="primair" id="draag">Draag deze vandaag</button>
+    <div id="wegplek"><button class="link" id="weg">Verwijder deze outfit</button></div>`);
+  $("#draag").onclick=()=>{sluit();toonOutfit={nr:o.nr,stukken:[...o.stukken]};tab="vandaag";toon();};
+  $("#weg").onclick=()=>{
+    $("#wegplek").innerHTML=`<div class="bevestig"><p>Deze outfit verwijderen?</p><div><button class="secundair" id="nee">Laat staan</button><button class="primair" id="ja">Verwijder</button></div></div>`;
+    $("#nee").onclick=()=>outfitVel(nr);
+    $("#ja").onclick=()=>{const was=kopie({weg:S.weg,extra:S.extra});S.weg.push(o.nr);S.extra=S.extra.filter(x=>String(x.nr)!==o.nr);bewaar();_ideeCache=null;sluit();outfits();
+      melding("De outfit is verwijderd.",()=>Object.assign(S,was));};
   };
-  let x0=null,y0=0,dx=0,sleept=false;
-  k.addEventListener("pointerdown",e=>{x0=e.clientX;y0=e.clientY;dx=0;sleept=false;k.style.transition="none";});
-  k.addEventListener("pointermove",e=>{ if(x0===null) return; dx=e.clientX-x0;
-    if(!sleept&&Math.abs(dx)>8&&Math.abs(dx)>Math.abs(e.clientY-y0)){sleept=true;try{k.setPointerCapture(e.pointerId);}catch(_){}}
-    if(sleept){k.style.transform=`translateX(${dx}px) rotate(${dx/18}deg)`;k.style.setProperty("--ja",Math.max(0,Math.min(1,dx/90)));k.style.setProperty("--nee",Math.max(0,Math.min(1,-dx/90)));}});
-  const los=()=>{ if(x0===null) return; x0=null;
-    if(sleept&&Math.abs(dx)>90) return klaar(dx>0);
-    k.style.transition="transform .2s ease-out"; k.style.transform=""; k.style.setProperty("--ja",0); k.style.setProperty("--nee",0); };
-  k.addEventListener("pointerup",los); k.addEventListener("pointercancel",los);
-  k.addEventListener("click",e=>{ if(sleept){e.preventDefault();return;} tip?tipVel(tip):laagVoorLaag(o.nr,"outfits"); });
-  $("#idee-ja").onclick=()=>klaar(true); $("#idee-nee").onclick=()=>klaar(false);
 }
 /* ================= 8b. Tip van Ta-daa: het gat in je kast ================= */
 const SIL={vest:"M30 8 L50 20 L70 8 L92 22 L98 70 L84 72 L82 44 L80 104 L54 104 L50 30 L46 104 L20 104 L18 44 L16 72 L2 70 L8 22 Z",
@@ -1090,7 +1046,7 @@ const hexVan=c=>(PALET.find(p=>p[0]===c)||[])[1]||"#888";
 const silhouet=(t,cls="sil")=>`<svg class="${cls}" viewBox="0 0 100 110" aria-hidden="true"><path d="${SIL[t.soort]}" fill="${hexVan(t.kleur)}" stroke="rgba(0,0,0,.35)" stroke-width="2" stroke-linejoin="round"/></svg>`;
 const tipNaam=t=>`Een ${TIP_SOORT[t.soort]||SOORTNAAM[t.soort]} in ${t.kleur}`;
 const tipSleutel=t=>t.soort+"|"+t.kleur;
-let _tipCache=null,_tipSleutel="",geveegd=0,stapelVolgorde=[];
+let _tipCache=null,_tipSleutel="";
 function gatTips(){ // welk stuk (soort + kleur) past bij de meeste dingen die je al hebt?
   const sleutel=JSON.stringify([S.wegStuk,S.labels,S.profiel,S.tipWeg,S.lijstje,KAST.length,vandaagDatum()]);
   if(_tipCache&&_tipSleutel===sleutel) return _tipCache;
@@ -1126,53 +1082,34 @@ function gatTips(){ // welk stuk (soort + kleur) past bij de meeste dingen die j
   const laatste=[...(S.tipWeg||[]),...(S.lijstje||[]).map(tipSleutel)].slice(-1)[0]?.split("|")[0];
   _tipCache=lijst.filter(t=>t.soort!==laatste).concat(lijst.filter(t=>t.soort===laatste)); _tipSleutel=sleutel; return _tipCache;
 }
-function tipNu(){ // af en toe, tussen je ideeën: na een paar keer vegen, hooguit één keer per dag
-  if(geveegd<4||S.tipDag===vandaagDatum()) return null;
+function metVoor(t){ // welke stukken uit je kast passen bij dit stuk van je lijstje?
+  const kast=kastNu().filter(k=>k.soort!=="schoenen"&&!k.nietInIdeeen), soort=l=>kast.filter(k=>isSoort(k,l)), s=t.soort;
+  K.__tip={id:"__tip",soort:s,kleuren:[t.kleur],naam:tipNaam(t),foto:""}; const met=new Map();
+  const test=(ids,p)=>{ if(regelsOk(ids)) met.set(p,Math.max(met.get(p)||0,1+voorkeur(ids))); };
+  if(["blouse","shirt/top","trui"].includes(s)) soort(["broek","rok"]).forEach(o=>test(["__tip",o.id],o.id));
+  else if(["broek","rok"].includes(s)) soort(["blouse","shirt/top","trui"]).forEach(o=>test([o.id,"__tip"],o.id));
+  else { soort(["jurk","jumpsuit"]).forEach(b=>test([b.id,"__tip"],b.id)); soort(["blouse","shirt/top","trui"]).filter(o=>!o.geenVestErover).forEach(o=>test([o.id,"__tip"],o.id)); }
+  delete K.__tip; return [...met].sort((a,b)=>b[1]-a[1]).map(x=>x[0]);
+}
+function tipNu(){ // op Vandaag, tussen de outfits: hooguit één nieuwe tip per dag
+  if(S.tipDag===vandaagDatum()) return null;
   return gatTips()[0]||null;
 }
-const tipTekst=t=>`Dit kledingstuk past bij ${t.aantal} dingen die je al hebt. Je kast roept erom, ik hoor het gewoon.`;
-function tipKaart(t){
-  const sterren=[[8,8,20,1],[88,10,14,2],[92,52,18,1],[6,48,12,2],[14,90,16,1],[86,88,12,2],[30,18,9,2],[72,22,10,1],[50,4,8,2],[64,94,9,1]].map(([x,y,sz,c])=>`<span class="ster" style="left:${x}%;top:${y}%;width:${sz}px;height:${sz}px;background:var(--ster${c})"></span>`).join("");
-  const snippers=[[18,30,-30,"#e0691f"],[82,36,25,"#e3a3b0"],[8,62,40,"#8c1d3c"],[90,62,-20,"#f6b987"],[36,10,60,"#e3a3b0"],[30,93,-50,"#e0691f"],[22,80,15,"#f6b987"],[76,94,70,"#8c1d3c"]].map(([x,y,r,c])=>`<span class="snipper" style="left:${x}%;top:${y}%;background:${c};transform:rotate(${r}deg)"></span>`).join("");
-  return `<button class="tafel kaartje tipkaart" id="kaartje" aria-label="Tip van Ta-daa: ${esc(tipNaam(t))}. Tik voor meer"><span class="straal"></span>${sterren}${snippers}<span class="stempel ja">Op mijn lijstje</span><span class="stempel nee">Niks voor mij</span>
-    <span class="tip-kop">${SPG}<span class="tip-label">Tip van Ta-daa!</span></span><span class="sil-held">${silhouet(t)}<span class="tip-badge">Past bij ${t.aantal}</span></span>
-    <h3>${esc(tipNaam(t))}</h3><p>${tipTekst(t)}</p><p style="font-size:13px;margin-top:6px">Veeg naar rechts voor je lijstje, of naar links als het niks voor je is.</p></button>`;
-}
+let tipTonen=false; // na een paar keer ⇄ op Vandaag: de tip staat even waar je outfit stond
 function tipKeuze(t,ja){
-  S.tipDag=vandaagDatum(); geveegd=0;
-  if(ja){S.lijstje=[...(S.lijstje||[]),{soort:t.soort,kleur:t.kleur,aantal:t.aantal,datum:vandaagDatum()}];bewaar();_tipCache=null;sluit();outfits();
-    melding("Op je lijstje gezet. Je vindt het bij je Kast.",()=>{S.lijstje=S.lijstje.filter(x=>tipSleutel(x)!==tipSleutel(t));S.tipDag=null;});}
-  else{S.tipWeg=[...(S.tipWeg||[]),tipSleutel(t)];bewaar();_tipCache=null;sluit();outfits();
+  S.tipDag=vandaagDatum();
+  if(ja){S.lijstje=[...(S.lijstje||[]),{soort:t.soort,kleur:t.kleur,aantal:t.aantal,met:t.met,datum:vandaagDatum()}];bewaar();_tipCache=null;tipTonen=false;sluit();toon(false);
+    melding("Op je lijstje gezet.",()=>{S.lijstje=S.lijstje.filter(x=>tipSleutel(x)!==tipSleutel(t));S.tipDag=null;});}
+  else{S.tipWeg=[...(S.tipWeg||[]),tipSleutel(t)];bewaar();_tipCache=null;tipTonen=false;sluit();toon(false);
     melding("Oké, die tip krijg je niet meer.",()=>{S.tipWeg=S.tipWeg.filter(x=>x!==tipSleutel(t));S.tipDag=null;});}
 }
-function tipVel(t){
-  vel(`<div class="vel-kop"><span class="tip-kop">${SPG}<span class="tip-label">Tip van Ta-daa!</span></span><button class="sluit" aria-label="Sluiten">${ICO.x}</button></div><div class="tip-vel">${silhouet(t)}<h3>${esc(tipNaam(t))}</h3><p class="mut">${tipTekst(t)}</p>
-    <p class="mut" style="margin:12px 0 0;text-align:left;font-weight:700">Je kunt het combineren met</p>
-    <div class="tip-strook">${t.met.map(id=>`<img src="${K[id].foto}" alt="${esc(K[id].naam)}">`).join("")}</div>
-    <div class="knoppen"><button class="secundair" id="tip-nee">Niks voor mij</button><button class="primair" id="tip-ja">Op mijn lijstje</button></div></div>`);
-  $("#tip-ja").onclick=()=>tipKeuze(t,true); $("#tip-nee").onclick=()=>tipKeuze(t,false);
-}
-function lijstjeBlok(){
+function lijstjeBlok(){ // Mijn lijstje: per stuk een kaart met foto's van wat je al hebt en waar het bij past
   const l=S.lijstje||[], heeft=new Set(kastNu().flatMap(k=>soortenVan(k).map(x=>x+"|"+kleur(k.id))));
-  return `<div class="blok"><h2>Mijn lijstje</h2>${l.length?l.map((t,i)=>`<div class="lijstje">${silhouet(t)}<div><b>${esc(tipNaam(t))}</b><p class="mut" style="margin:0">${heeft.has(tipSleutel(t))?"Staat al in je kast. Goed bezig!":`Past bij ${t.aantal} dingen die je al hebt.`}</p></div><button data-lijst-weg="${i}">Verwijder</button></div>`).join("")
-    :`<div class="leeg-staat">${SPG}<b>Je lijstje is nog leeg</b><br>Hier komen de tips die je bewaart. Ik geef je er af en toe een tussen je ideeën.</div>`}</div>`;
-}
-
-let combiStukken=[];
-const combiOk=()=>{const c=kledingIn({stukken:combiStukken});return c.length>=2||c.some(id=>isSoort(K[id],["jurk","jumpsuit"]));};
-function combi(){
-  const ids=gesorteerd(combiStukken), heeft=new Set(ids.map(id=>rolVan(id,ids)));
-  const vrij=["Bovenlaag","Top","Accent","Onder","Schoenen"].filter(l=>!heeft.has(l)&&!((l==="Top"||l==="Onder")&&heeft.has("Basis")));
-  app.innerHTML=`<button class="terug" id="terug">${ICO.terug}Outfits</button><h1>Nieuwe combi</h1><p class="mut">Kies wat je wilt combineren. Je hebt minstens 2 stuks nodig, of een jurk.</p>
-  <div class="slots">${ids.map(slotKnop).join("")}${vrij.map(l=>`<button class="slot leeg" data-leeg="${l}"><span class="plek">${ICO.plus}</span><span><span class="wat">${l==="Top"?"Top of jurk":LAAGLABEL[l]}</span><b>Kies ${({Bovenlaag:"een vest of jasje",Top:"een top of jurk",Accent:"iets voor eronder",Onder:"een broek of rok",Schoenen:"schoenen"})[l]}</b></span><span></span></button>`).join("")}</div>
-  ${combiStukken.length?tips(combiStukken).map(t=>`<div class="tip"><b>Tip van de kast</b>${t}</div>`).join(""):""}
-  <button class="primair" id="bewaar" ${combiOk()?"":"disabled"}>${combiOk()?"Bewaar deze combi":"Kies minstens 2 stuks, of een jurk"}</button>`;
-  $("#terug").onclick=()=>{tab="outfits";toon();};
-  app.querySelectorAll("[data-leeg]").forEach(b=>b.onclick=()=>kiesVel(b.dataset.leeg==="Top"?"TopBasis":b.dataset.leeg,id=>{combiStukken.push(id);combi();}));
-  app.querySelectorAll("[data-id]").forEach(b=>b.onclick=()=>wisselVel(b.dataset.id,b.dataset.rol,id=>{combiStukken=combiStukken.map(x=>x===b.dataset.id?id:x).filter(Boolean);combi();}));
-  app.querySelectorAll("[data-weg-laag]").forEach(b=>b.onclick=()=>{combiStukken=combiStukken.filter(x=>x!==b.dataset.wegLaag);combi();});
-  $("#bewaar").onclick=()=>{if(combiOk()) bewaarVel(combiStukken,"",()=>{combiStukken=[];});};
-  scrollTo(0,0);
+  return l.length?`<p class="mut" style="margin:0 0 12px">Dit wil je nog hebben. Bij elk stuk zie je waar je het mee kunt dragen.</p>`+l.map((t,i)=>{const met=(t.met||metVoor(t)).filter(id=>K[id]).slice(0,5);
+    return `<div class="lkaart"><div class="lkaart-top"><span class="silvak">${silhouet(t)}</span><div><h3>${esc(tipNaam(t))}</h3><p class="mut">${heeft.has(tipSleutel(t))?"Staat al in je kast. Goed bezig!":`Past bij ${t.aantal} dingen die je al hebt.`}</p></div></div>
+    ${met.length?`<p class="mut met">Je kunt het combineren met</p><div class="tip-strook">${met.map(id=>`<img src="${K[id].foto}" alt="${esc(K[id].naam)}">`).join("")}</div>`:""}
+    <button class="weg" data-lijst-weg="${i}">Gekocht of toch niet? Haal hem van je lijstje</button></div>`;}).join("")
+    :`<div class="leeg-staat">${SPG}<b>Je lijstje is nog leeg</b><br>Hier komen de tips die je bewaart. Af en toe krijg je op Vandaag een tip van mij.</div>`;
 }
 
 /* ================= 9. Kast, foto's toevoegen, labelen ================= */
@@ -1199,7 +1136,7 @@ function kastCheck(){ // stukken die je al een maand niet droeg, en die je niet 
 const TIP_ONLINE=`<div class="tip" style="margin-top:12px"><b>Tip</b>Bestel je online kleding? Maak screenshots van de productfoto's!</div>`;
 const teLabelen=()=>(S.nieuw||[]).filter(n=>!n.klaar&&!S.wegStuk.includes(n.id));
 function kast(){
-  const g=kast.g||"alles", w=kast.w||"kast", open=teLabelen();
+  const g=kast.g||"alles", w=kast.w==="lijstje"?"lijstje":"kast", open=teLabelen();
   const groepen=GROEP.filter(([k])=>!(heren()&&k==="Basis"));
   const check=w==="kast"?kastCheck()[0]:null;
   app.innerHTML=`<div class="kop"><h1>Mijn kast</h1><button class="toevoeg" id="plus">${ICO_EXTRA.camera}Kleding toevoegen</button></div>
@@ -1208,14 +1145,11 @@ function kast(){
     <div class="pillen" id="check-weer" hidden>${WEER.map(([w,t])=>`<button class="pil" data-check-weer="${w}">${t}</button>`).join("")}<button class="primair" id="check-weer-ok" style="margin-top:6px">Klaar</button></div></div>`:""}
   ${w==="kast"&&kastNu().some(k=>k.soort!=="schoenen")&&nogNodig()?`<div class="tip"><b>Bijna!</b>${nogNodig()}</div>`:""}
   <input type="file" id="bestand" accept="image/*" multiple hidden>
-  <div class="seg" role="tablist"><button role="tab" data-w="kast" aria-selected="${w==="kast"}">In mijn kast</button><button role="tab" data-w="labelen" aria-selected="${w==="labelen"}">Nog labelen${open.length?` <b>${open.length}</b>`:""}</button><button role="tab" data-w="lijstje" aria-selected="${w==="lijstje"}">Mijn lijstje${(S.lijstje||[]).length?` <b>${S.lijstje.length}</b>`:""}</button></div>
-  ${w==="lijstje"?lijstjeBlok().replace('<h2>Mijn lijstje</h2>',''):w==="kast"?`<div class="filters">${groepen.map(([k,t])=>`<button class="pil" data-g="${k}" aria-pressed="${g===k}">${t}</button>`).join("")}</div>
-    ${kastNu().some(k=>g==="alles"||lagenVan(k).includes(g))?"":`<div class="leeg-staat">${SPG}${g==="alles"?(open.length?"Je foto's staan bij Nog labelen. Geef ze daar de juiste info, dan komen ze hier.":"Je kast is nog leeg. Tik op Kleding toevoegen."):"Hier staat nog niks van deze soort."}</div>`}
-    <div class="raster">${opKleur(kastNu().filter(k=>g==="alles"||lagenVan(k).includes(g))).map(k=>`<button class="stuk" data-k="${k.id}" aria-label="${esc(k.naam)}"><img src="${k.foto}" alt="" loading="lazy">${k.kleuren?.[0]?`<i class="stip" style="--k:${(PALET.find(p=>p[0]===k.kleuren[0])||[0,"#888"])[1]}"></i>`:""}</button>`).join("")}</div>`
-  :open.length?`<p class="mut" style="margin-bottom:10px">Loop ze één voor één door en geef ze de juiste info. Daarna staan ze in je kast.</p>
-    <button class="primair" id="start" style="margin-bottom:12px">Begin met labelen</button>
-    <div class="raster">${open.map(n=>`<button class="stuk" data-n="${n.id}" aria-label="Nog labelen"><img src="${fotoSrc(n.asset)}" alt=""></button>`).join("")}</div>`
-  :`<div class="leeg-staat">${SPG}Niks te labelen. Tik op Kleding toevoegen. Meer foto's tegelijk mag.</div>`}
+  <div class="seg" role="tablist"><button role="tab" data-w="kast" aria-selected="${w==="kast"}">Mijn kast${open.length?` <b>${open.length}</b>`:""}</button><button role="tab" data-w="lijstje" aria-selected="${w==="lijstje"}">Mijn lijstje${(S.lijstje||[]).length?` <b>${S.lijstje.length}</b>`:""}</button></div>
+  ${w==="lijstje"?lijstjeBlok():`<div class="filters">${groepen.map(([k,t])=>`<button class="pil" data-g="${k}" aria-pressed="${g===k}">${t}</button>`).join("")}</div>
+    ${g==="alles"&&open.length?`<button class="labelrij" id="start"><b>${open.length===1?"1 stuk mist":open.length+" stukken missen"} nog info.</b> Tik erop, dan stel ik een paar vragen.</button>`:""}
+    ${kastNu().some(k=>g==="alles"||lagenVan(k).includes(g))||(g==="alles"&&open.length)?"":`<div class="leeg-staat">${SPG}${g==="alles"?"Je kast is nog leeg. Tik op Kleding toevoegen. Meer foto's tegelijk mag.":"Hier staat nog niks van deze soort."}</div>`}
+    <div class="raster">${g==="alles"?open.map(n=>`<button class="stuk" data-n="${n.id}" aria-label="Nog invullen"><img src="${fotoSrc(n.asset)}" alt=""><span class="invul">Nog invullen</span></button>`).join(""):""}${opKleur(kastNu().filter(k=>g==="alles"||lagenVan(k).includes(g))).map(k=>`<button class="stuk" data-k="${k.id}" aria-label="${esc(k.naam)}"><img src="${k.foto}" alt="" loading="lazy">${k.kleuren?.[0]?`<i class="stip" style="--k:${(PALET.find(p=>p[0]===k.kleuren[0])||[0,"#888"])[1]}"></i>`:""}</button>`).join("")}</div>`}
   ${!(S.nieuw||[]).length&&!KAST_BASIS.length?TIP_ONLINE:""}`;
   app.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{kast.w=b.dataset.w;kast();});
   app.querySelectorAll("[data-lijst-weg]").forEach(b=>b.onclick=()=>{const i=+b.dataset.lijstWeg,x=S.lijstje[i];S.lijstje.splice(i,1);bewaar();kast();melding("Hij is van je lijstje gehaald.",()=>{S.lijstje.splice(i,0,x);bewaar();kast();});});
@@ -1312,7 +1246,7 @@ async function voegToe(files){
     }catch(e){melding(`Foto ${i+1} lukte niet. Probeer hem nog een keer.`);}
   }
   bewaar(); syncNieuw();
-  if(nieuw.length){melding(nieuw.length===1?"Foto toegevoegd! Wat is het?":`${nieuw.length} foto's toegevoegd! Wat zijn het?`);kast.w="labelen";labelStap(nieuw[0]);}
+  if(nieuw.length){melding(nieuw.length===1?"Foto toegevoegd! Wat is het?":`${nieuw.length} foto's toegevoegd! Wat zijn het?`);kast.w="kast";labelStap(nieuw[0]);}
 }
 function labelStap(id){ // één voor één de juiste info geven
   const n=S.nieuw.find(x=>x.id===id); if(!n){kast();return;}
@@ -1429,7 +1363,7 @@ const TOUR=[ // volgt de menubalk: eerst je kast vullen, dan de rest
   {tab:"kast",doel:"#plus",kop:"Voeg je kleding toe",tekst:"Maak een foto van één kledingstuk, het liefst op een effen ondergrond. Of maak screenshots van je online aankopen."},
   {tab:"kast",doel:'nav [data-tab="kast"]',kop:"Dit is je kast",tekst:"Label je kleding en laat Ta‑daa je ondersteunen."},
   {tab:"vandaag",doel:'nav [data-tab="vandaag"]',kop:"Laat je verrassen",tekst:"Elke dag een outfit voor het weer en je zin. Weet je al wat je aan wilt? Tik op dat kledingstuk en zet het vast. Na het dragen vraagt Ta‑daa hoe het voelde."},
-  {tab:"outfits",doel:'nav [data-tab="outfits"]',kop:"Je outfits en ideeën",tekst:"Hier staan de outfits die je bewaart. Bij Ideeën swipe je door voorstellen van de kast."},
+  {tab:"outfits",doel:'nav [data-tab="outfits"]',kop:"Je outfits",tekst:"Elke outfit die je aantrekt, komt hier te staan. Voelde hij helemaal als jij? Dan krijgt hij een hartje en staat hij bovenaan."},
   {tab:"ik",doel:'nav [data-tab="ik"]',kop:"Hier pas je alles aan",tekst:"Je antwoorden van daarnet, je kleurtype en je eigen regels. Ook je back-up vind je hier."}];
 let TS=-1;
 function startTour(){ TS=0; ik.sub=null; tekenTour(); }
@@ -1496,7 +1430,7 @@ function welkom(){ setTimeout(startTour,50); app.innerHTML=""; }
 function uitleg(onderwerp,van="ik"){
   const terug=`<button class="terug" id="terug">${ICO.terug}${ik.sub==="over"?"Over Ta-daa":"Dit ben ik"}</button>`;
   const T={
-    werkt:`<h1>Hoe werkt Ta-daa?</h1>${WAT_IS_TADAA}${stappenHtml()}<div class="tip"><b>Vandaag of Ideeën?</b>Bij Vandaag krijg je één outfit voor nu. Weet je al wat je aan wilt? Tik op dat kledingstuk in je outfit en kies Zet vast. Bij Ideeën swipe je door voorstellen en bewaar je wat je leuk vindt. Af en toe zit daar een Tip van Ta-daa tussen: een kledingstuk dat goed bij je kast zou passen.</div><p class="mut">Ta-daa gebruikt geen AI. Alle voorstellen komen uit regels en uit wat jij zelf aangeeft.</p>`,
+    werkt:`<h1>Hoe werkt Ta-daa?</h1>${WAT_IS_TADAA}${stappenHtml()}<div class="tip"><b>Zo leert Ta-daa je kennen</b>Op Vandaag krijg je één outfit voor nu. Weet je al wat je aan wilt? Tik op dat kledingstuk en kies Zet vast. Na het dragen vraagt Ta-daa hoe het voelde. Sla je bepaalde kleuren vaak over, dan vraagt het spiegeltje of ze nooit meer samen mogen. Bij je Kast staat af en toe een Tip van Ta-daa: een kledingstuk dat goed bij je kast zou passen.</div><p class="mut">Ta-daa gebruikt geen AI. Alle voorstellen komen uit regels en uit wat jij zelf aangeeft.</p>`,
     scherm:`<h1>Zet Ta-daa op je beginscherm</h1>
       <div class="blok"><h2>iPhone (Safari)</h2><ol class="kort"><li>Tik onderin op het deel-icoon: het vierkantje met de pijl omhoog.</li><li>Kies <b>Zet op beginscherm</b>.</li><li>Tik op <b>Voeg toe</b>.</li></ol></div>
       <div class="blok"><h2>Android (Chrome)</h2><ol class="kort"><li>Tik rechtsboven op de drie puntjes.</li><li>Kies <b>App installeren</b> of <b>Toevoegen aan startscherm</b>.</li><li>Bevestig.</li></ol></div>
@@ -1580,23 +1514,19 @@ function kiesVel(laag,klaar){
   <div class="kies-rij">${opties(laag).map(k=>`<button data-k="${k.id}"><img src="${k.foto}" alt=""><span>${esc(k.naam)}</span></button>`).join("")}</div>`);
   document.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{sluit();klaar(b.dataset.k);});
 }
-function bewaarVel(stukken,schoenen,na){ // combi bewaren: geen extra vragen
-  S.extra.push({nr:nieuwNr(),stukken:[...stukken],schoenen:schoenen||"",tip:"",eigen:true});
-  bewaar();na&&na();melding("Goede smaak! Hij staat bij je outfits.");tab="outfits";outfits.f="mijn";toon();
-}
 // Update-pop-up (keuze B, 2026-11-26): één nieuwtje groot. Alleen voor wie Ta-daa al gebruikte.
-const NIEUWTJE="vastzetten-1";
+const NIEUWTJE="kast-lijstje-1";
 function nieuwtje(terugzien){ // terugzien = via Over Ta-daa → Wat is er nieuw?
   if(!terugzien&&(S.nieuwtje===NIEUWTJE||(SITE&&!S.welkom)||moetEerstBeginscherm())) return;
   const pol=(soort,kleur,vast)=>`<div class="nieuw-pol${vast?" vast":""}"><svg viewBox="-10 -10 120 130" aria-hidden="true"><path d="${SIL[soort]}" fill="${kleur}" stroke="rgba(0,0,0,.3)" stroke-width="2" stroke-linejoin="round"/></svg></div>`;
   const plek=document.createElement("div"); plek.className="nieuw-achter";
-  plek.innerHTML=`<div class="nieuw-kaart" role="dialog" aria-modal="true" aria-labelledby="nieuw-kop">${SPG}<h2 id="nieuw-kop">Spiegeltje, spiegeltje…</h2>
-    <p>…wie heeft de leukste outfits van het land? Jij, en nu nog makkelijker.</p>
-    <div class="nieuw-rij">${pol("trui","#8c1d3c",true)}${pol("broek","#5b7fa6")}${pol("rok","#e8b04b")}</div>
-    <p class="uitleg"><b>Nieuw:</b> tik op een kledingstuk en zet het vast. Ik zoek de rest erbij.</p>
-    <button class="primair" id="nieuw-ok">Probeer het!</button></div>`;
+  plek.innerHTML=`<div class="nieuw-kaart" role="dialog" aria-modal="true" aria-labelledby="nieuw-kop">${SPG}<h2 id="nieuw-kop">Opgeruimd staat netjes</h2>
+    <p>Ik heb je kast opgeruimd. Nee, niet je echte kast. Die is voor jou 😉</p>
+    <div class="nieuw-rij">${pol("trui","#8c1d3c")}${pol("broek","#5b7fa6")}${pol("rok","#e8b04b")}</div>
+    <p class="uitleg"><b>Nieuw:</b> kleding die nog info mist, staat nu bovenaan in je kast. En op je lijstje zie je meteen waar je iets nieuws mee kunt combineren.</p>
+    <button class="primair" id="nieuw-ok">Laat maar zien</button></div>`;
   document.body.appendChild(plek);
-  const weg=()=>{S.nieuwtje=NIEUWTJE;bewaar();plek.remove();if(tab!=="vandaag"){tab="vandaag";toon();}};
+  const weg=()=>{S.nieuwtje=NIEUWTJE;bewaar();plek.remove();if(tab!=="kast"){tab="kast";kast.w="kast";toon();}};
   plek.querySelector("#nieuw-ok").onclick=weg; plek.onclick=e=>{if(e.target===plek)weg();};
   }
 let tab="vandaag";
