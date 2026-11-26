@@ -187,7 +187,7 @@ button.toggle[aria-pressed="true"] i::after,button.regel[aria-pressed="true"] i:
 .tipkaart{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 14px;text-align:center;cursor:default}.tipkaart .silvak{width:110px;height:118px;background:transparent}.tipkaart .silvak .sil{width:100px;height:110px}.tipkaart h3{margin:4px 0 2px;font-size:21px}.tipkaart .tip-label{font-weight:800;color:var(--accent)}.tipkaart .tip-strook{grid-template-columns:repeat(4,1fr);width:100%;margin:10px 0 0}
 .tipkaart+.knoppen{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .tafel.tipkaart .tip-label{background:none;transform:none;padding:0;box-shadow:none;border-radius:0;color:var(--accent);font-size:14px;font-weight:800;position:static}
-.stuk{position:relative}.stuk .let{position:absolute;top:6px;right:6px;width:32px;height:32px;margin:0;min-height:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.45))}.stuk .let svg{display:block;width:100%;height:100%}
+.stuk{position:relative}.stuk .let{position:absolute;top:5px;right:4px;width:40px;height:40px;margin:0;min-height:0;transform:rotate(8deg)}.stuk .let svg{display:block;width:100%;height:100%}
 .labelrij{display:block;width:100%;text-align:left;background:var(--accent-zacht);color:var(--inkt);border:0;border-radius:20px;padding:12px 16px;margin:0 0 12px;font-size:14.5px;line-height:1.4}
 .kastcheck{display:grid;grid-template-columns:72px 1fr;gap:12px;background:var(--accent-zacht);border-radius:18px;padding:12px;margin-bottom:12px}
 .kastcheck img{width:72px;height:88px;object-fit:contain}
@@ -319,7 +319,7 @@ select{width:100%;font:inherit;font-size:14px;border:1.5px solid var(--lijn);bor
 /* vel van onder, melding, onderbalk */
 .vel-achter{position:fixed;inset:0;background:rgba(10,20,24,.45);z-index:20}
 .spg-vraag{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.spg-vraag .keuze{font-size:13.5px;padding:7px 12px;font-weight:700}.spg-vraag .keuze.ja{background:var(--accent);color:var(--op-accent)}
-.kaart{position:relative}.kaart .hartje{position:absolute;top:-6px;right:-6px;z-index:3;width:40px;height:40px;border-radius:50%;background:var(--accent);display:grid;place-items:center;transform:rotate(10deg);box-shadow:0 0 0 3px var(--bg),0 4px 10px -3px rgba(0,0,0,.45)}.kaart .hartje svg{width:24px;height:24px;fill:var(--op-accent)}
+.kaart{position:relative}.kaart .hartje{position:absolute;top:-14px;right:-12px;z-index:3;width:52px;height:52px;transform:rotate(10deg)}.kaart .hartje svg{display:block;width:100%;height:100%}
 .outfit-uitleg{margin:-4px 0 12px;font-size:14px}
 .outfit-tafel{height:300px;pointer-events:none}
 .nieuw-achter{position:fixed;inset:0;z-index:200;background:rgba(34,9,15,.45);display:grid;place-items:center;padding:20px}
@@ -1015,10 +1015,11 @@ function outfits(){ // één lijst: je eigen outfits, die van 'Helemaal mij' bov
   const l=alle().filter(o=>!o.idee).sort((a,b)=>(favoriet(b)-favoriet(a))||(+a.nr-+b.nr));
   app.innerHTML=`<div class="kop"><h1>Mijn outfits</h1></div>
   ${l.length?`<p class="mut outfit-uitleg">Met een hartje: helemaal jij. Tik op een outfit om hem vandaag te dragen.</p>`:""}
-  <div class="outfit-raster">${l.map(o=>`<button class="kaart" data-o="${o.nr}" aria-label="${favoriet(o)?"Helemaal mij. ":""}Bekijk deze outfit">${favoriet(o)?`<span class="hartje" aria-hidden="true">${HART}</span>`:""}<div class="mini-pol n${Math.min(4,o.stukken.filter(id=>K[id]).length)}">${gesorteerd(o.stukken).filter(id=>K[id]).slice(0,4).map((id,i)=>`<span style="transform:rotate(${[-3,2,3,-2][i]}deg)"><img src="${K[id].foto}" alt=""></span>`).join("")}</div></button>`).join("")||`<div class="leeg-staat">${SPG}<b>Nog geen outfits</b><br>Trek op Vandaag een outfit aan, dan komt hij hier vanzelf te staan.</div>`}</div>`;
+  <div class="outfit-raster">${l.map(o=>`<button class="kaart" data-o="${o.nr}" aria-label="${favoriet(o)?"Helemaal mij. ":""}Bekijk deze outfit">${favoriet(o)?`<span class="hartje" aria-hidden="true">${HART_TEK}</span>`:""}<div class="mini-pol n${Math.min(4,o.stukken.filter(id=>K[id]).length)}">${gesorteerd(o.stukken).filter(id=>K[id]).slice(0,4).map((id,i)=>`<span style="transform:rotate(${[-3,2,3,-2][i]}deg)"><img src="${K[id].foto}" alt=""></span>`).join("")}</div></button>`).join("")||`<div class="leeg-staat">${SPG}<b>Nog geen outfits</b><br>Trek op Vandaag een outfit aan, dan komt hij hier vanzelf te staan.</div>`}</div>`;
   app.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>outfitVel(b.dataset.o));
 }
-const UITROEP='<svg viewBox="0 0 40 40"><path d="M20.5 3.2c9.6.3 16.6 7.4 16.3 16.9-.3 9.4-7.8 16.9-17.2 16.6C10.3 36.4 3 29.2 3.3 19.6 3.6 10 11.1 2.9 20.5 3.2z" fill="var(--accent)" stroke="#fff" stroke-width="2.6"/><path d="M20.3 10.4c.3 4.6-.4 9.2-.6 13.1" fill="none" stroke="var(--op-accent)" stroke-width="4.2" stroke-linecap="round"/><circle cx="19.6" cy="29.4" r="2.5" fill="var(--op-accent)"/></svg>';
+const UITROEP='<svg viewBox="0 0 120 120"><g filter="url(#ds-k)"><path d="M44 8h34l-8 72H52z" fill="#8a3d0c" transform="translate(5,5)"/><path d="M44 8h34l-8 72H52z" fill="#f6b987" stroke="#4a1022" stroke-width="5" stroke-linejoin="round"/><circle cx="66" cy="102" r="13" fill="#8a3d0c"/><circle cx="61" cy="97" r="13" fill="#f6b987" stroke="#4a1022" stroke-width="5"/></g></svg>';
+const HART_TEK='<svg viewBox="0 0 120 120"><g filter="url(#ds-k)"><path d="M60 100C34 82 16 66 16 44c0-14 11-24 23-24 9 0 16 5 21 13 5-8 12-13 21-13 12 0 23 10 23 24 0 22-18 38-44 56z" transform="translate(5,5)" fill="#8c1d3c"/><path d="M60 100C34 82 16 66 16 44c0-14 11-24 23-24 9 0 16 5 21 13 5-8 12-13 21-13 12 0 23 10 23 24 0 22-18 38-44 56z" fill="#e3a3b0" stroke="#4a1022" stroke-width="5" stroke-linejoin="round"/><path d="M34 40c2-6 7-9 12-9" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".8"/></g></svg>';
 const HART='<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
 function outfitVel(nr){ // tik op een outfit: bekijken, vandaag dragen of verwijderen
   const o=vind(nr); if(!o) return; const ids=gesorteerd(o.stukken).filter(id=>K[id]);
