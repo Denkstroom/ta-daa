@@ -801,7 +801,7 @@ function ik(){
       ${p.nooit.map((r,i)=>`<div class="eigen"><span>${esc(naam(r.a))} + ${[].concat(r.b).map(b=>esc(naam(b))).join(", ")}</span><button data-weg-regel="${i}">Verwijder</button></div>`).join("")}
       <div class="nooit">${kies("nooit-a")}<span class="mut">met</span>${kies("nooit-b")}</div>
       <button class="secundair" id="nooit-voeg" style="width:100%">Voeg regel toe</button></div>`],
-    over:["Over Ta-daa",`<div class="blok">${[["rondleiding","Uitleg nog eens bekijken"],["werkt","Hoe werkt Ta-daa?"],["scherm","Zet Ta-daa op je beginscherm"],["privacy","Privacy: waar blijven je gegevens?"],["backup","Back-up maken of terugzetten"],["wissen","Verwijder al mijn gegevens"]].map(([k,t])=>`<button class="regel" data-uitleg="${k}"><span>${t}</span><span class="mut">›</span></button>`).join("")}</div>`]};
+    over:["Over Ta-daa",`<div class="blok">${[["rondleiding","Uitleg nog eens bekijken"],["nieuw","Wat is er nieuw?"],["werkt","Hoe werkt Ta-daa?"],["scherm","Zet Ta-daa op je beginscherm"],["privacy","Privacy: waar blijven je gegevens?"],["backup","Back-up maken of terugzetten"],["wissen","Verwijder al mijn gegevens"]].map(([k,t])=>`<button class="regel" data-uitleg="${k}"><span>${t}</span><span class="mut">›</span></button>`).join("")}</div>`]};
   if(ik.sub==="over"&&!SITE) ik.sub=null;
   const rij=(k,ico,t,sub,extra)=>`<button class="menu-rij" data-ik="${k}"><span class="menu-ico">${ico}</span><span><b>${t}</b><small>${sub}</small></span>${extra||'<span class="pijl" aria-hidden="true">›</span>'}</button>`;
   const n=(S.lijstje||[]).length;
@@ -813,10 +813,10 @@ function ik(){
       ${rij("kleurtype",ICO_IK.kleur,"Kleurtype",kt[0])}
       ${rij("kleding",ICO_IK.kleding,"Welke kleding draag je?",afdNaam)}</div>
     <div class="menu-groep">${rij("regels",ICO_IK.regels,"Mijn regels",`${aan} van de ${regels.length} staan aan${p.nooit.length?`, en ${p.nooit.length} ${p.nooit.length===1?"eigen regel":"eigen regels"}`:""}`)}</div>
-    ${SITE?`<div class="menu-groep">${rij("over",ICO_IK.over,"Over Ta-daa","Uitleg, privacy en back-up")}</div>`:""}`; }
+    ${SITE?`<div class="menu-groep">${rij("over",ICO_IK.over,"Over Ta-daa","Uitleg, nieuws, privacy en back-up")}</div>`:""}`; }
   app.querySelectorAll("[data-ik]").forEach(b=>b.onclick=()=>{ik.sub=b.dataset.ik;ik();scrollTo(0,0);});
   if($("#ik-terug")) $("#ik-terug").onclick=()=>{ik.sub=null;ik();scrollTo(0,0);};
-  app.querySelectorAll("[data-uitleg]").forEach(b=>b.onclick=()=>b.dataset.uitleg==="rondleiding"?startTour():uitleg(b.dataset.uitleg));
+  app.querySelectorAll("[data-uitleg]").forEach(b=>b.onclick=()=>b.dataset.uitleg==="rondleiding"?startTour():b.dataset.uitleg==="nieuw"?nieuwtje(true):uitleg(b.dataset.uitleg));
   const zet=f=>{S.profiel=p;f(p);bewaar();_ideeCache=null;const y=scrollY;ik();scrollTo(0,y);};
   app.querySelectorAll("[data-afd]").forEach(b=>b.onclick=()=>zet(p=>p.afdeling=b.dataset.afd));
   app.querySelectorAll("[data-zone]").forEach(b=>b.onclick=()=>zet(p=>{const z=b.dataset.zone;p.zones[z]=STANDEN[(STANDEN.indexOf(mag(z))+1)%3];}));
@@ -1586,8 +1586,8 @@ function bewaarVel(stukken,schoenen,na){ // combi bewaren: geen extra vragen
 }
 // Update-pop-up (keuze B, 2026-11-26): één nieuwtje groot. Alleen voor wie Ta-daa al gebruikte.
 const NIEUWTJE="vastzetten-1";
-function nieuwtje(){
-  if(S.nieuwtje===NIEUWTJE||(SITE&&!S.welkom)||moetEerstBeginscherm()) return;
+function nieuwtje(terugzien){ // terugzien = via Over Ta-daa → Wat is er nieuw?
+  if(!terugzien&&(S.nieuwtje===NIEUWTJE||(SITE&&!S.welkom)||moetEerstBeginscherm())) return;
   const pol=(soort,kleur,vast)=>`<div class="nieuw-pol${vast?" vast":""}"><svg viewBox="-10 -10 120 130" aria-hidden="true"><path d="${SIL[soort]}" fill="${kleur}" stroke="rgba(0,0,0,.3)" stroke-width="2" stroke-linejoin="round"/></svg></div>`;
   const plek=document.createElement("div"); plek.className="nieuw-achter";
   plek.innerHTML=`<div class="nieuw-kaart" role="dialog" aria-modal="true" aria-labelledby="nieuw-kop">${SPG}<h2 id="nieuw-kop">Spiegeltje, spiegeltje…</h2>
