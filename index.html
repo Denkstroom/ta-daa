@@ -153,12 +153,11 @@ button.toggle[aria-pressed="true"] i::after,button.regel[aria-pressed="true"] i:
 .pol{position:absolute;width:44%;background:var(--polaroid);padding:6px 6px 16px;border-radius:3px;box-shadow:0 10px 18px -10px rgba(0,0,0,.55)}
 .pol img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:var(--foto)}
 .pol i{position:absolute;left:8px;bottom:4px;font-style:normal;font-size:11px;font-weight:700;color:#59646a}
-.mini-pol{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px;background:var(--tafel);border-radius:14px;aspect-ratio:1;align-content:center;justify-items:center}
-.mini-pol span{width:100%}
-.mini-pol.n1 span{grid-column:1/-1;width:62%}
-.mini-pol.n3 span:nth-child(3){grid-column:1/-1;width:calc(50% - 3px)}
-.mini-pol span{background:var(--polaroid);padding:3px 3px 9px;border-radius:2px;box-shadow:0 4px 8px -5px rgba(0,0,0,.5)}
-.mini-pol img{width:100%;aspect-ratio:1;object-fit:cover;display:block}
+.collage{display:grid;gap:3px;aspect-ratio:1;border-radius:18px;overflow:hidden;box-shadow:0 2px 10px rgba(74,16,34,.08)}
+.collage span{background:var(--polaroid);padding:6px;min-height:0;display:block}
+.collage img{width:100%;height:100%;object-fit:contain;display:block}
+.collage.n2,.collage.n4{grid-template-columns:1fr 1fr}.collage.n4{grid-template-rows:1fr 1fr}
+.collage.n3{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}.collage.n3 span:first-child{grid-row:span 2}
 .lagen-foto{display:grid;grid-template-columns:repeat(var(--n,2),1fr);gap:6px}
 .lagen-foto img{width:100%;aspect-ratio:3/4.1;object-fit:contain;background:var(--foto);border-radius:14px;display:block}
 .voorstel .onder{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 6px 2px;font-size:13.5px;color:var(--inkt);opacity:.75}
@@ -216,7 +215,7 @@ nav button.stip::before{content:"";position:absolute;top:6px;right:calc(50% - 16
 .open-hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:20;display:flex;align-items:center;gap:6px;white-space:nowrap;
   background:var(--vlak);color:var(--inkt);border-radius:99px;padding:8px 14px;font-size:13.5px;font-weight:700;box-shadow:0 6px 16px -8px rgba(0,0,0,.6);pointer-events:none}
 .open-hint .ico{width:17px;height:17px}
-.kaart{background:var(--vlak);border-radius:18px;padding:6px;text-align:left;width:100%}
+.kaart{background:none;border-radius:18px;padding:0;text-align:left;width:100%;box-shadow:none}
 .kaart .lagen-foto{gap:4px}.kaart .lagen-foto img{border-radius:11px}
 .kaart .lagen-foto img:nth-child(n+5){display:none}
 .kaart .onder{display:flex;justify-content:space-between;align-items:center;padding:6px 4px 2px;font-size:12px;color:var(--inkt);opacity:.75;min-height:24px}
@@ -258,9 +257,12 @@ input[type=range]{width:100%;margin:8px 0 0;accent-color:var(--accent);height:28
 .raster:has(.stuk){gap:5px}
 .stuk{position:relative;padding:0;border-radius:14px;overflow:hidden;background:var(--foto)}
 .stuk img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block}
+.stuk .fav{position:absolute;top:4px;right:3px;width:34px;height:34px;transform:rotate(10deg);pointer-events:none}.stuk .fav svg{display:block;width:100%;height:100%}
 .stuk .stip{position:absolute;left:7px;bottom:7px;width:15px;height:15px;border-radius:50%;background:var(--k);box-shadow:0 0 0 2px #fff,0 1px 4px rgba(0,0,0,.4)}
 .stuk span{display:block;font-size:12px;line-height:1.2;margin:5px 2px 2px;min-height:2.4em}
 .stuk small{display:block;font-size:11px;color:var(--mut);margin:0 2px 2px;min-height:1.3em}
+.nieuw-hart{position:absolute;top:-14px;right:-12px;width:40px;height:40px;transform:rotate(10deg);z-index:2}.nieuw-pol .nieuw-hart svg{display:block;width:100%;height:100%;aspect-ratio:auto;background:none}
+.groot-wrap{position:relative}.fav-knop{position:absolute;top:8px;right:8px;width:52px;height:52px;min-height:0;padding:0;margin:0;background:none;border:0;box-shadow:none;transform:rotate(10deg);transition:transform .15s}.fav-knop:active{transform:rotate(10deg) scale(.88)}.fav-knop svg{display:block;width:100%;height:100%}
 .groot{width:100%;max-height:38vh;object-fit:contain;background:var(--foto);border-radius:18px;display:block;margin-bottom:12px}
 .voortgang{height:4px;background:var(--lijn);border-radius:4px;margin:4px 0 12px}
 .voortgang i{display:block;height:100%;background:var(--accent);border-radius:4px}
@@ -319,7 +321,7 @@ select{width:100%;font:inherit;font-size:14px;border:1.5px solid var(--lijn);bor
 /* vel van onder, melding, onderbalk */
 .vel-achter{position:fixed;inset:0;background:rgba(10,20,24,.45);z-index:20}
 .spg-vraag{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.spg-vraag .keuze{font-size:13.5px;padding:7px 12px;font-weight:700}.spg-vraag .keuze.ja{background:var(--accent);color:var(--op-accent)}
-.kaart{position:relative}.kaart .hartje{position:absolute;top:-14px;right:-12px;z-index:3;width:52px;height:52px;transform:rotate(10deg)}.kaart .hartje svg{display:block;width:100%;height:100%}
+.kaart{position:relative}.kaart .hartje{position:absolute;top:-12px;right:-10px;z-index:3;width:52px;height:52px;transform:rotate(10deg)}.kaart .hartje svg{display:block;width:100%;height:100%}
 .outfit-uitleg{margin:-4px 0 12px;font-size:14px}
 .outfit-tafel{height:300px;pointer-events:none}
 .nieuw-achter{position:fixed;inset:0;z-index:200;background:rgba(34,9,15,.45);display:grid;place-items:center;padding:20px}
@@ -501,7 +503,7 @@ const SITE=!!window.TADAA_SITE;
 const PROFIEL_START=SITE
   ?{afdeling:"allebei",kleurtype:"onbekend",zones:{},comfort:{geenHakken:false},regelsUit:["fel"],nooit:[],genegeerd:[]}
   :{afdeling:"dames",kleurtype:"winter",zones:{schouders:"ja",armen:"nee"},comfort:{geenHakken:true},regelsUit:[],nooit:[],genegeerd:[]};
-const LEEG={labels:{},extra:[],weg:[],status:{},gedragen:[],wegStuk:[],wegIdee:[],nieuw:[],lijstje:[],tipWeg:[],profiel:PROFIEL_START};
+const LEEG={labels:{},extra:[],weg:[],status:{},gedragen:[],wegStuk:[],wegIdee:[],nieuw:[],lijstje:[],tipWeg:[],fav:[],profiel:PROFIEL_START};
 const kopie=x=>JSON.parse(JSON.stringify(x));
 let S=kopie(LEEG);
 const LS=SITE?"tadaa-staat":"kast-app-v2";
@@ -674,9 +676,12 @@ function schoenVoor(ids){
   if(its.some(i=>metPanty(i.id))) return kies(s=>!labels(s.id).hak&&pastWeer(s)&&tags(s.id).includes("stoer"))||kies(s=>!labels(s.id).hak&&pastWeer(s));
   return kies(s=>!labels(s.id).hak&&pastWeer(s)&&tags(s.id).includes("comfy")&&!tags(s.id).includes("stoer"))||kies(s=>!labels(s.id).hak&&pastWeer(s));
 }
+/* Favoriete kledingstukken (Irene, 2026-11-27): zet je zelf aan in de Kast. Ideeën met een favoriet komen vaker langs. */
+const isFav=id=>(S.fav||[]).includes(id);
+const favBonus=ids=>Math.min(2,ids.filter(isFav).length);
 let _ideeCache=null,_ideeSleutel="";
 function ideeen(vast){
-  const sleutel=JSON.stringify([S.wegStuk,S.wegIdee,S.labels,S.profiel,vast.length,KAST.length,weerNu()]);
+  const sleutel=JSON.stringify([S.wegStuk,S.wegIdee,S.labels,S.profiel,S.fav,vast.length,KAST.length,weerNu()]);
   if(_ideeCache&&_ideeSleutel===sleutel) return _ideeCache;
   const al=new Set(vast.map(o=>kledingIn(o).sort().join("+")));
   const kast=kastNu().filter(k=>!k.nietInIdeeen), soort=s=>kast.filter(k=>isSoort(k,s));
@@ -688,7 +693,7 @@ function ideeen(vast){
     const fel=new Set(ids.map(kleur).filter(c=>FEL.has(c))).size;
     const sch=schoenVoor(ids);
     kandidaten.push({nr:"i"+k,sleutel:k,stukken:sch?[...ids,sch]:ids,status:"idee",idee:true,
-      schoenen:ids.some(metPanty)?"Met panty":"",s:Math.min(fel,1)+bonus-0.55*(ids.length-2)+voorkeur(ids)+dagzaad(k)*1.2});
+      schoenen:ids.some(metPanty)?"Met panty":"",s:Math.min(fel,1)+bonus-0.55*(ids.length-2)+voorkeur(ids)+favBonus(ids)*.9+dagzaad(k)*1.2});
   };
   for(const t of tops) for(const o of onders){
     const wilAccent=t.soort==="blouse"||t.scheveHals||labels(t.id).dragen.includes("over");
@@ -702,15 +707,20 @@ function ideeen(vast){
   for(const b of basis){ probeer([b.id],0.2); for(const v of vesten) probeer([b.id,v.id],0); }
   // variatie: elk stuk komt maar een paar keer voor, lastige stukken één keer
   const telling={}, uit=[], vrij=(k,max)=>(telling[k]||0)<max;
-  for(const c of kandidaten.sort((a,b)=>b.s-a.s)){
+  const neem=c=>{
     const ids=kledingIn(c), hoofd=ids[0];
     const onder=ids.find(id=>["broek","rok"].includes(K[id].soort))||"-", vest=ids.find(id=>rolVan(id,ids)==="Bovenlaag")||"-", acc=ids.find(id=>K[id].soort==="hemdje")||"-";
     const sleutels=[hoofd,"o"+onder,"v"+vest,"a"+acc,...ids.filter(id=>K[id].lastig).map(id=>"l"+id)];
-    const max=k=>k.startsWith("l")?1:k==="v-"||k==="a-"?99:k.startsWith("o")||k.startsWith("v")||k.startsWith("a")?3:2;
-    if(!sleutels.every(k=>vrij(k,max(k)))) continue;
+    const max=k=>k.startsWith("l")?1:k==="v-"||k==="a-"?99:(k.startsWith("o")||k.startsWith("v")||k.startsWith("a")?3:2)+(isFav(K[k]?k:k.slice(1))?2:0); // favorieten mogen vaker
+    if(uit.includes(c)||!sleutels.every(k=>vrij(k,max(k)))) return;
     sleutels.forEach(k=>telling[k]=(telling[k]||0)+1);
-    uit.push(c); if(uit.length>=24) break;
-  }
+    uit.push(c);
+  };
+  kandidaten.sort((a,b)=>b.s-a.s);
+  // eerst een vaste plek voor je favorieten: tot 3 ideeën per favoriet, samen hooguit de helft
+  for(const f of (S.fav||[]).filter(id=>K[id]&&actief(id))){ let n=0;
+    for(const c of kandidaten){ if(n>=3||uit.length>=12) break; if(!c.stukken.includes(f)) continue; const voor=uit.length; neem(c); if(uit.length>voor) n++; } }
+  for(const c of kandidaten){ if(uit.length>=24) break; neem(c); }
   _ideeCache=gevarieerd(uit); _ideeSleutel=sleutel; return _ideeCache;
 }
 function nogNodig(){ // wat mist er nog voor je eerste outfit?
@@ -749,6 +759,7 @@ function score(o){ // hoe goed past een outfit bij vandaag?
     if(g.pas==="wijd") s-=.7;                // zat te wijd
   }
   if(favoriet(o)) s+=.6;
+  s+=favBonus(kledingIn(o))*.5;                                 // favoriete kledingstukken erin
   if(o.idee) s-=.6; else s+=zichtScore(kledingIn(o));
   const dagen=d=>(new Date(vandaagDatum())-new Date(d))/864e5;
   const gedragen=S.gedragen.filter(x=>String(x.nr)===o.nr).map(x=>dagen(x.datum)).filter(d=>d<7);
@@ -758,7 +769,16 @@ function score(o){ // hoe goed past een outfit bij vandaag?
   return s;
 }
 function dagzaad(x){const n=[...String(x)].reduce((a,c)=>a+c.charCodeAt(0),0);const d=new Date();const v=(d.getFullYear()*372+d.getMonth()*31+d.getDate())*97+n*131;return ((v*9301+49297)%233280)/233280;}
-const ranglijst=()=>gevarieerd(alle().filter(inSeizoen).map(o=>({o,s:score(o)+dagzaad(o.nr)*1.2})).sort((a,b)=>b.s-a.s).map(x=>x.o));
+// Elke 3e outfit op Vandaag is een nieuw idee (Irene, 2026-11-27): anders zie je met veel bewaarde outfits nooit iets nieuws, en leert Ta-daa niks.
+function ranglijst(){
+  const op=l=>gevarieerd(l.map(o=>({o,s:score(o)+dagzaad(o.nr)*1.2})).sort((a,b)=>b.s-a.s).map(x=>x.o));
+  const l=alle().filter(inSeizoen), eigen=op(l.filter(o=>!o.idee)), nieuw=op(l.filter(o=>o.idee)), uit=[];
+  while(eigen.length||nieuw.length){
+    const kiesNieuw=uit.length%3===2;
+    uit.push((kiesNieuw?nieuw:eigen).shift()||(kiesNieuw?eigen:nieuw).shift());
+  }
+  return uit;
+}
 // zet outfits zo op volgorde dat de volgende zo weinig mogelijk dezelfde stukken heeft als de vorige twee
 function gevarieerd(l){
   const rest=[...l], uit=[];
@@ -1011,14 +1031,18 @@ function tips(ids){ // de kast legt uit wat jouw regels van een combi vinden
 }
 
 /* ================= 8. Outfits en Nieuwe combi ================= */
+// Outfitkaartje = collage tot de rand (optie A, Irene 2026-11-27): de foto's zelf zijn de kaart, zonder schoenen, max 4
+function collage(o){ const ids=gesorteerd(kledingIn(o)).filter(id=>K[id]).slice(0,4);
+  return `<div class="collage n${ids.length}">${ids.map(id=>`<span><img src="${K[id].foto}" alt=""></span>`).join("")}</div>`; }
 function outfits(){ // één lijst: je eigen outfits, die van 'Helemaal mij' bovenaan met een hartje
   const l=alle().filter(o=>!o.idee).sort((a,b)=>(favoriet(b)-favoriet(a))||(+a.nr-+b.nr));
   app.innerHTML=`<div class="kop"><h1>Mijn outfits</h1></div>
   ${l.length?`<p class="mut outfit-uitleg">Met een hartje: helemaal jij. Tik op een outfit om hem vandaag te dragen.</p>`:""}
-  <div class="outfit-raster">${l.map(o=>`<button class="kaart" data-o="${o.nr}" aria-label="${favoriet(o)?"Helemaal mij. ":""}Bekijk deze outfit">${favoriet(o)?`<span class="hartje" aria-hidden="true">${HART_TEK}</span>`:""}<div class="mini-pol n${Math.min(4,o.stukken.filter(id=>K[id]).length)}">${gesorteerd(o.stukken).filter(id=>K[id]).slice(0,4).map((id,i)=>`<span style="transform:rotate(${[-3,2,3,-2][i]}deg)"><img src="${K[id].foto}" alt=""></span>`).join("")}</div></button>`).join("")||`<div class="leeg-staat">${SPG}<b>Nog geen outfits</b><br>Trek op Vandaag een outfit aan, dan komt hij hier vanzelf te staan.</div>`}</div>`;
+  <div class="outfit-raster">${l.map(o=>`<button class="kaart" data-o="${o.nr}" aria-label="${favoriet(o)?"Helemaal mij. ":""}Bekijk deze outfit">${favoriet(o)?`<span class="hartje" aria-hidden="true">${HART_TEK}</span>`:""}${collage(o)}</button>`).join("")||`<div class="leeg-staat">${SPG}<b>Nog geen outfits</b><br>Trek op Vandaag een outfit aan, dan komt hij hier vanzelf te staan.</div>`}</div>`;
   app.querySelectorAll("[data-o]").forEach(b=>b.onclick=()=>outfitVel(b.dataset.o));
 }
 const UITROEP='<svg viewBox="0 0 120 120"><g filter="url(#ds-k)"><path d="M44 8h34l-8 72H52z" fill="#8a3d0c" transform="translate(5,5)"/><path d="M44 8h34l-8 72H52z" fill="#f6b987" stroke="#4a1022" stroke-width="5" stroke-linejoin="round"/><circle cx="66" cy="102" r="13" fill="#8a3d0c"/><circle cx="61" cy="97" r="13" fill="#f6b987" stroke="#4a1022" stroke-width="5"/></g></svg>';
+const HART_LEEG='<svg viewBox="0 0 120 120"><g filter="url(#ds-k)"><path d="M60 100C34 82 16 66 16 44c0-14 11-24 23-24 9 0 16 5 21 13 5-8 12-13 21-13 12 0 23 10 23 24 0 22-18 38-44 56z" fill="#fff" fill-opacity=".75" stroke="#4a1022" stroke-width="5" stroke-linejoin="round"/></g></svg>';
 const HART_TEK='<svg viewBox="0 0 120 120"><g filter="url(#ds-k)"><path d="M60 100C34 82 16 66 16 44c0-14 11-24 23-24 9 0 16 5 21 13 5-8 12-13 21-13 12 0 23 10 23 24 0 22-18 38-44 56z" transform="translate(5,5)" fill="#8c1d3c"/><path d="M60 100C34 82 16 66 16 44c0-14 11-24 23-24 9 0 16 5 21 13 5-8 12-13 21-13 12 0 23 10 23 24 0 22-18 38-44 56z" fill="#e3a3b0" stroke="#4a1022" stroke-width="5" stroke-linejoin="round"/><path d="M34 40c2-6 7-9 12-9" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".8"/></g></svg>';
 const HART='<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>';
 function outfitVel(nr){ // tik op een outfit: bekijken, vandaag dragen of verwijderen
@@ -1155,7 +1179,7 @@ function kast(){
   ${w==="lijstje"?lijstjeBlok():`<div class="filters">${groepen.map(([k,t])=>`<button class="pil" data-g="${k}" aria-pressed="${g===k}">${t}</button>`).join("")}</div>
     ${g==="alles"&&open.length?`<button class="labelrij" id="start"><b>${open.length===1?"1 stuk mist":open.length+" stukken missen"} nog info.</b> Tik erop, dan stel ik een paar vragen.</button>`:""}
     ${kastNu().some(k=>g==="alles"||lagenVan(k).includes(g))||(g==="alles"&&open.length)?"":`<div class="leeg-staat">${SPG}${g==="alles"?"Je kast is nog leeg. Tik op Kleding toevoegen. Meer foto's tegelijk mag.":"Hier staat nog niks van deze soort."}</div>`}
-    <div class="raster">${g==="alles"?open.map(n=>`<button class="stuk" data-n="${n.id}" aria-label="Nog invullen"><img src="${fotoSrc(n.asset)}" alt=""><span class="let" aria-hidden="true">${UITROEP}</span></button>`).join(""):""}${opKleur(kastNu().filter(k=>g==="alles"||lagenVan(k).includes(g))).map(k=>`<button class="stuk" data-k="${k.id}" aria-label="${esc(k.naam)}"><img src="${k.foto}" alt="" loading="lazy">${k.kleuren?.[0]?`<i class="stip" style="--k:${(PALET.find(p=>p[0]===k.kleuren[0])||[0,"#888"])[1]}"></i>`:""}</button>`).join("")}</div>`}
+    <div class="raster">${g==="alles"?open.map(n=>`<button class="stuk" data-n="${n.id}" aria-label="Nog invullen"><img src="${fotoSrc(n.asset)}" alt=""><span class="let" aria-hidden="true">${UITROEP}</span></button>`).join(""):""}${opKleur(kastNu().filter(k=>g==="alles"||lagenVan(k).includes(g))).map(k=>`<button class="stuk" data-k="${k.id}" aria-label="${isFav(k.id)?"Favoriet: ":""}${esc(k.naam)}"><img src="${k.foto}" alt="" loading="lazy">${isFav(k.id)?`<span class="fav" aria-hidden="true">${HART_TEK}</span>`:""}${k.kleuren?.[0]?`<i class="stip" style="--k:${(PALET.find(p=>p[0]===k.kleuren[0])||[0,"#888"])[1]}"></i>`:""}</button>`).join("")}</div>`}
   ${!(S.nieuw||[]).length&&!KAST_BASIS.length?TIP_ONLINE:""}`;
   app.querySelectorAll("[data-w]").forEach(b=>b.onclick=()=>{kast.w=b.dataset.w;kast();});
   app.querySelectorAll("[data-lijst-weg]").forEach(b=>b.onclick=()=>{const i=+b.dataset.lijstWeg,x=S.lijstje[i];S.lijstje.splice(i,1);bewaar();kast();melding("Hij is van je lijstje gehaald.",()=>{S.lijstje.splice(i,0,x);bewaar();kast();});});
@@ -1311,10 +1335,11 @@ function labelStap(id){ // één voor één de juiste info geven
   };
 }
 function labelVel(id){ // gevoel en details van een stuk aanpassen
-  const it=K[id], l=kopie(labels(id)), zelf=(S.nieuw||[]).some(x=>x.id===id);
+  const it=K[id], l=kopie(labels(id)), zelf=(S.nieuw||[]).some(x=>x.id===id); let fav=isFav(id);
   const teken=()=>{
     vel(`<div class="vel-kop"><h2>${esc(it.naam)}</h2><button class="sluit" aria-label="Sluiten">${ICO.x}</button></div>
-    <img class="groot" src="${it.foto}" alt="">
+    <div class="groot-wrap"><img class="groot" src="${it.foto}" alt=""><button class="fav-knop" id="fav" aria-pressed="${fav}" aria-label="Favoriet">${fav?HART_TEK:HART_LEEG}</button></div>
+    <p class="mut" style="margin:-4px 0 12px">${fav?"Favoriet! Ta-daa maakt vaker nieuwe outfits met dit kledingstuk.":"Tik op het hartje als dit een favoriet is. Dan maakt Ta-daa er vaker nieuwe outfits mee."}</p>
     <h3>Hoe voelt dit stuk?</h3><p class="mut" style="margin-bottom:8px">Meer mag, niks ook.</p>
     <div class="toggles">${BEHOEFTES.map(([n,t])=>`<button class="toggle" data-t="${n}" aria-pressed="${l.tags.includes(n)}">${t}<i></i></button>`).join("")}</div>
     <div class="toggles">${isSoort(it,["broek","rok"])&&!heren()?`<button class="toggle" data-x="hak" aria-pressed="${l.hak}">Alleen met hakken<i></i></button>`:""}</div>
@@ -1326,6 +1351,7 @@ function labelVel(id){ // gevoel en details van een stuk aanpassen
     <div id="stukweg"><button class="link" id="verwijder">Verwijder uit mijn kast</button></div>`);
     document.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const n=b.dataset.t,i=l.tags.indexOf(n);i>-1?l.tags.splice(i,1):l.tags.push(n);teken();});
     document.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>{l[b.dataset.x]=!l[b.dataset.x];teken();});
+    $("#fav").onclick=()=>{fav=!fav;S.fav=(S.fav||[]).filter(x=>x!==id);if(fav)S.fav.push(id);bewaar();_ideeCache=null;teken();kast();};
     document.querySelectorAll("[data-dragen]").forEach(b=>b.onclick=()=>{const v=b.dataset.dragen,i=l.dragen.indexOf(v);i>-1?l.dragen.splice(i,1):l.dragen.push(v);l.accent=it.soort==="hemdje"||l.dragen.includes("onder");teken();});
     document.querySelectorAll("[data-weer]").forEach(b=>b.onclick=()=>{const w=b.dataset.weer,i=l.weer.indexOf(w);if(i>-1&&l.weer.length>1)l.weer.splice(i,1);else if(i<0)l.weer.push(w);teken();});
     document.querySelectorAll("[data-z]").forEach(b=>b.onclick=()=>{const z=b.dataset.z,i=l.zichtbaar.indexOf(z);i>-1?l.zichtbaar.splice(i,1):l.zichtbaar.push(z);teken();});
@@ -1436,7 +1462,7 @@ function welkom(){ setTimeout(startTour,50); app.innerHTML=""; }
 function uitleg(onderwerp,van="ik"){
   const terug=`<button class="terug" id="terug">${ICO.terug}${ik.sub==="over"?"Over Ta-daa":"Dit ben ik"}</button>`;
   const T={
-    werkt:`<h1>Hoe werkt Ta-daa?</h1>${WAT_IS_TADAA}${stappenHtml()}<div class="tip"><b>Zo leert Ta-daa je kennen</b>Op Vandaag krijg je één outfit voor nu. Weet je al wat je aan wilt? Tik op dat kledingstuk en kies Zet vast. Na het dragen vraagt Ta-daa hoe het voelde. Sla je bepaalde kleuren vaak over, dan vraagt het spiegeltje of ze nooit meer samen mogen. Bij je Kast staat af en toe een Tip van Ta-daa: een kledingstuk dat goed bij je kast zou passen.</div><p class="mut">Ta-daa gebruikt geen AI. Alle voorstellen komen uit regels en uit wat jij zelf aangeeft.</p>`,
+    werkt:`<h1>Hoe werkt Ta-daa?</h1>${WAT_IS_TADAA}${stappenHtml()}<div class="tip"><b>Zo leert Ta-daa je kennen</b>Op Vandaag krijg je één outfit voor nu. Elke derde outfit is een nieuw idee van Ta-daa. Heb je een favoriet kledingstuk? Tik erop in je Kast en zet Favoriet aan. Dan maakt Ta-daa er vaker nieuwe outfits mee. Weet je al wat je aan wilt? Tik op dat kledingstuk en kies Zet vast. Na het dragen vraagt Ta-daa hoe het voelde. Sla je bepaalde kleuren vaak over, dan vraagt het spiegeltje of ze nooit meer samen mogen. Bij je Kast staat af en toe een Tip van Ta-daa: een kledingstuk dat goed bij je kast zou passen.</div><p class="mut">Ta-daa gebruikt geen AI. Alle voorstellen komen uit regels en uit wat jij zelf aangeeft.</p>`,
     scherm:`<h1>Zet Ta-daa op je beginscherm</h1>
       <div class="blok"><h2>iPhone (Safari)</h2><ol class="kort"><li>Tik onderin op het deel-icoon: het vierkantje met de pijl omhoog.</li><li>Kies <b>Zet op beginscherm</b>.</li><li>Tik op <b>Voeg toe</b>.</li></ol></div>
       <div class="blok"><h2>Android (Chrome)</h2><ol class="kort"><li>Tik rechtsboven op de drie puntjes.</li><li>Kies <b>App installeren</b> of <b>Toevoegen aan startscherm</b>.</li><li>Bevestig.</li></ol></div>
@@ -1521,16 +1547,16 @@ function kiesVel(laag,klaar){
   document.querySelectorAll("[data-k]").forEach(b=>b.onclick=()=>{sluit();klaar(b.dataset.k);});
 }
 // Update-pop-up (keuze B, 2026-11-26): één nieuwtje groot. Alleen voor wie Ta-daa al gebruikte.
-const NIEUWTJE="kast-lijstje-1";
+const NIEUWTJE="ideeen-fav-1";
 function nieuwtje(terugzien){ // terugzien = via Over Ta-daa → Wat is er nieuw?
   if(!terugzien&&(S.nieuwtje===NIEUWTJE||(SITE&&!S.welkom)||moetEerstBeginscherm())) return;
-  const pol=(soort,kleur,vast)=>`<div class="nieuw-pol${vast?" vast":""}"><svg viewBox="-10 -10 120 130" aria-hidden="true"><path d="${SIL[soort]}" fill="${kleur}" stroke="rgba(0,0,0,.3)" stroke-width="2" stroke-linejoin="round"/></svg></div>`;
+  const pol=(soort,kleur,vast,hart)=>`<div class="nieuw-pol${vast?" vast":""}"${hart?' style="position:relative"':""}>${hart?`<span class="nieuw-hart" aria-hidden="true">${HART_TEK}</span>`:""}<svg viewBox="-10 -10 120 130" aria-hidden="true"><path d="${SIL[soort]}" fill="${kleur}" stroke="rgba(0,0,0,.3)" stroke-width="2" stroke-linejoin="round"/></svg></div>`;
   const plek=document.createElement("div"); plek.className="nieuw-achter";
-  plek.innerHTML=`<div class="nieuw-kaart" role="dialog" aria-modal="true" aria-labelledby="nieuw-kop">${SPG}<h2 id="nieuw-kop">Opgeruimd staat netjes</h2>
-    <p>Ik heb je kast opgeruimd. Nee, niet je echte kast. Die is voor jou 😉</p>
-    <div class="nieuw-rij">${pol("trui","#8c1d3c")}${pol("broek","#5b7fa6")}${pol("rok","#e8b04b")}</div>
-    <p class="uitleg"><b>Nieuw:</b> kleding die nog info mist, staat nu bovenaan in je kast. En op je lijstje zie je meteen waar je iets nieuws mee kunt combineren.</p>
-    <button class="primair" id="nieuw-ok">Laat maar zien</button></div>`;
+  plek.innerHTML=`<div class="nieuw-kaart" role="dialog" aria-modal="true" aria-labelledby="nieuw-kop">${SPG}<h2 id="nieuw-kop">Ta-daa heeft ideeën!</h2>
+    <p>Elke derde outfit is nieuw.</p>
+    <div class="nieuw-rij">${pol("trui","#8c1d3c")}${pol("broek","#5b7fa6",false,true)}${pol("rok","#e8b04b")}</div>
+    <p class="uitleg"><b>Tip:</b> geef je favoriete kledingstukken een hartje. Tik in je kast op een kledingstuk en dan op het hartje.</p>
+    <button class="primair" id="nieuw-ok">Probeer het!</button></div>`;
   document.body.appendChild(plek);
   const weg=()=>{S.nieuwtje=NIEUWTJE;bewaar();plek.remove();if(tab!=="kast"){tab="kast";kast.w="kast";toon();}};
   plek.querySelector("#nieuw-ok").onclick=weg; plek.onclick=e=>{if(e.target===plek)weg();};
